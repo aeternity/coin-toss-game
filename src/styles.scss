@@ -1,0 +1,119 @@
+/* You can add global styles to this file, and also import other style files */
+
+
+/* make first always be open */
+/* 
+app-onetransaction:nth-child(1) .nav-growpop > a > span{
+	border-top-width: 40px !important;     
+	border-bottom-width: 40px !important;
+	-webkit-transition-delay: 2s !important;
+	transition-delay: 2s !important;
+}   
+
+.nav-growpop a:hover div {.animationwrapper {
+    display: contents
+}
+	opacity: 1;
+	-webkit-transition-delay: 0.3s;
+	transition-delay: 0.3s;
+	-webkit-transform: translateY(-50%) translateX(0) scale(1);
+	transform: translateY(-50%) translateX(0) scale(1);
+} */
+
+/* animation practice */
+
+body {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.transaction-row-hovered { 
+	background: #cc6055; 
+	height: 144px;
+    border-top-width: 11px;
+    border-top-style: outset;
+    border-top-color: #cc6055;
+}
+
+.transaction-row { 
+	background: #cc6055; 
+	height: 64px;
+    border-top-width: 11px;
+    border-top-style: outset;
+    border-top-color: #cc6055;
+}
+
+.prev .icon-wrap {
+   height: 64px; 
+}
+
+.prev .icon-wrap:hover {
+  height: 144px; 
+}
+
+.txlabel {
+  float: left;
+  padding-right: 20px;
+  padding-bottom: 10px;
+  transform: translateY(-7px);
+  opacity: 0.5;
+  background-color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 3px;
+  color: grey;
+  font-family: Arial;
+}
+
+.hide {
+  display: none;
+}
+
+
+.autogrow {
+    resize: both;
+    
+
+    color: #ffffff;
+
+    width: auto;
+    height: auto;
+    background-color: #80CBC4;
+  }
+  
+
+  .transactionlist .onetransaction:nth-of-type(1) .icon-wrap {
+    background: #FFCDB2 !important;
+    border-color: #FFCDB2!important;
+  }    
+  .transactionlist .onetransaction:nth-of-type(2) .icon-wrap {
+    background: #FFB4A2;
+    border-color: #FFB4A2;
+  }    
+  .transactionlist .onetransaction:nth-of-type(3) .icon-wrap {
+    background: #E5989B;
+    border-color: #E5989B;
+  }    
+  .transactionlist .onetransaction:nth-of-type(4) .icon-wrap {
+    background: #B5838D;
+    border-color: #B5838D;
+  }    
+  .transactionlist .onetransaction:nth-of-type(5) .icon-wrap {
+    background: #6D6875;
+    border-color: #6D6875;
+  }    
+
+
+
+.prev .inExpanded {
+/* 	height: 144px !important;
+	border-top-width: 40px;
+	border-bottom-width: 40px;
+	-webkit-transition-delay: 0s;
+	transition-delay: 0s; */
+}
