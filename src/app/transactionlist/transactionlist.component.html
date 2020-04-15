@@ -6,15 +6,15 @@
 	<br>
 	<br>
 	<br>
-	<app-one-incoming-transaction></app-one-incoming-transaction>
-
-			<app-onetransaction class="onetransaction" *ngFor="let update of channelUpdates " > <br>
+	
+			
+		<app-one-update class="one-update" *ngFor="let update of channelUpdates" [update]="update" > <br>
 				<br>
 				<br>
 				<br>
 				<br>
 				
-				<br></app-onetransaction>
+				<br></app-one-update> 
 			
           
            
