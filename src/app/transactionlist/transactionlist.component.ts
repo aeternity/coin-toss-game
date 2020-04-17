@@ -8,7 +8,7 @@ import { Component, OnInit, Pipe, PipeTransform } from '@angular/core';
 export class TransactionlistComponent implements OnInit {
 
 
-  dummyUpdates: any[] = [{type:"out"}, {type:"out"}, {type:"in"}, {type:"in"}, {type:"out"}]
+  dummyUpdates: any[] = [{type:"out"}, {type:"out"}, {type:"out"}, {type:"in"}, {type:"in"}, {type:"out"}]
   channelUpdates: any[] = []
 
   constructor() {
@@ -21,7 +21,7 @@ export class TransactionlistComponent implements OnInit {
     console.log(Math.random());
     
     setInterval(() => {
-      if (this.channelUpdates.length < 6 && Math.random() < 0.5)  {
+      if (this.channelUpdates.length < 7 && Math.random() < 0.5)  {
         this.channelUpdates.unshift(this.dummyUpdates.pop())
       }
     }, 1000)
