@@ -8,6 +8,7 @@ import { OnetransactionComponent } from './onetransaction/onetransaction.compone
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReversePipe } from './reverse.pipe';
 import { OneIncomingTransactionComponent } from './one-incoming-transaction/one-incoming-transaction.component';
+import { OneUpdateComponent } from './one-update/one-update.component';
 
 @NgModule({
   declarations: [
@@ -15,7 +16,8 @@ import { OneIncomingTransactionComponent } from './one-incoming-transaction/one-
     TransactionlistComponent,
     OnetransactionComponent,
     ReversePipe,
-    OneIncomingTransactionComponent
+    OneIncomingTransactionComponent,
+    OneUpdateComponent
   ],
   imports: [
     BrowserModule,

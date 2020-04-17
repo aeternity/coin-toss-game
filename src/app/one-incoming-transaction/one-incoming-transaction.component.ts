@@ -26,7 +26,7 @@ import {
         transform: 'translateX(0)', opacity: 1
       })),
       transition('void => *', [
-        style({ transform: 'translateX(-40%)', opacity: 0}),
+        style({ transform: 'translateX(40%)', opacity: 0}),
         // style({ transform: 'translateX(-40%)', opacity: 0,  height:'41px' }),
         group([
           animate('400ms 0.4s ease', style({
