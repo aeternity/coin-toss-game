@@ -16,14 +16,25 @@ export class TransactionlistComponent implements OnInit {
 
   }
 
+  initChannelAndMakeTransfer() {
+    this.sdkService.initChannel({}).then(channel => {
+      // here channel already initialized
+      // Make transfer
+      channel.update(
+        this.sdkService.initiatorAccount.address(),
+        this.sdkService.channelParams.responderId,
+        10000,
+        this.sdkService.signTx
+      ).then(res => { debugger }).error(error => { debugger })
+    }).catch(e => { debugger });
+  }
 
   ngOnInit() {
+    this.initChannelAndMakeTransfer()
     this.channelUpdates = ["foo"];
 
     console.log(Math.random());
-    this.sdkService.initChannel({}, (tag, tx) => {
-      if (confirm('Do you want to sign this tx -> ' + tag)) return this.sdkService.initiatorAccount.signTransaction(tx, { networkId: 'ae_channel_service_test' });
-    }).then(channel => { debugger }).catch(e => { debugger })
+
 
     setInterval(() => {
       if (this.channelUpdates.length < 7 && Math.random() < 0.5)  {

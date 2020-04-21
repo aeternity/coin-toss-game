@@ -30,27 +30,33 @@ export class SdkService {
       secretKey: '5245D200D51B048C825280578EDDA2160F48859D49DCFC3510D87CC46758C97C39E09993C3D5B1147F002925270F7E7E112425ABA0137A6E8A929846A3DFD871'
     }
   });
+  channelParams
   wsUrl: string = environment.SC_NODE_URL;
-  backendServiceUrl: string = environment.BACKEND_SERVICE_URL || ' http://127.0.0.1:4000';
+  backendServiceUrl: string = environment.BACKEND_SERVICE_URL;
 
 
   constructor(private http: HttpClient) {
+  }
+  signTx(tag, tx) {
+    if (confirm('Do you want to sign this tx -> ' + tag)) { return this.initiatorAccount.signTransaction(tx); }
+    return null;
   }
 
   async getConnectionParams(params: { address: string, port: number }): Promise<any> {
     return this.http.get(`${this.backendServiceUrl}/connect/new?client_account=${params.address}&port=${params.port}`).toPromise();
   }
 
-  async initChannel(channelParams: any, sign: (tag, tx) => string) {
-    const address = await this.initiatorAccount.address()
+  async initChannel(params: any) {
+    const address = await this.initiatorAccount.address();
     const channelConfig = await this.getConnectionParams({address, port: 1600});
-    const configFromService = Object
+    this.channelParams = Object
       .entries({ ...channelConfig.expected_initiator_configuration.basic, ...channelConfig.expected_initiator_configuration.custom })
       .reduce((acc, [key, value]) => ({ ...acc, [StringUtils.snakeToPascal(key)]: value }), { url: this.wsUrl });
+    console.log('Channel params', this.channelParams)
     const channelInstance = await Channel({
-      ...configFromService,
-      // ...channelParams,
-      sign
+      ...this.channelParams,
+      // ...params,
+      sign: this.signTx
     });
     await this.waitForChannelStart(channelInstance);
     return channelInstance;
@@ -77,7 +83,6 @@ export class SdkService {
   async waitForChannelStart(channel) {
     return new Promise(resolve =>
       this.onAction(channel, ActionTypes.statusChanged, (status) => {
-        debugger
         if (status === 'open') {
           resolve();
         }
