@@ -3,7 +3,9 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: false
+  production: false,
+  SC_NODE_URL: 'ws://95.216.27.196:3014/channel',
+  BACKEND_SERVICE_URL: 'http://95.216.27.196:4001'
 };
 
 /*
