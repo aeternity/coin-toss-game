@@ -9,6 +9,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReversePipe } from './reverse.pipe';
 import { OneIncomingTransactionComponent } from './one-incoming-transaction/one-incoming-transaction.component';
 import { OneUpdateComponent } from './one-update/one-update.component';
+import { SdkService } from './sdk.service';
 
 @NgModule({
   declarations: [
@@ -25,7 +26,7 @@ import { OneUpdateComponent } from './one-update/one-update.component';
     BrowserAnimationsModule,
     HttpClientModule
   ],
-  providers: [],
+  providers: [SdkService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

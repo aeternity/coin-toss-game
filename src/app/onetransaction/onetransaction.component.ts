@@ -10,6 +10,7 @@ import {
   transition,
   AnimationEvent
 } from '@angular/animations';
+import {SdkService} from "../sdk.service";
 
 /* https://www.usefuldev.com/post/Angular:%20using%20animations%20with%20NgIf
  */
@@ -31,11 +32,11 @@ import {
         group([
           animate('400ms 0.4s ease', style({
             transform: 'translateX(0)',
-            
+
             //height:'41px'
           })),
           animate('300ms 0.1s ease-in', style({
-            opacity: 1  
+            opacity: 1
           }))
         ])
       ]),
@@ -46,11 +47,11 @@ import {
     /* trigger('isHovered', [
       state('false', style({
        // no clue what this does:
-        height: '64px', 
+        height: '64px',
       })),
       state('true', style({
         // no clue what this does:
-         height: '144px', 
+         height: '144px',
        })),
       transition('void => *', [
         style({ height: '64px' }),
@@ -59,7 +60,7 @@ import {
             height: '64px',
           })),
           animate('300ms 0.1s ease-in', style({
-            opacity: 1  
+            opacity: 1
           }))
         ]),
       ]),
@@ -70,7 +71,7 @@ import {
             height: '144px',
           })),
           animate('300ms 0.1s ease-in', style({
-            opacity: 1  
+            opacity: 1
           }))
         ]),
       ]),
@@ -90,12 +91,15 @@ export class OnetransactionComponent implements OnInit {
   isExpanded: boolean = false;
   isHovered: boolean = false;
   delayedIsHovered: boolean = false;
-  
-  constructor(private ref: ChangeDetectorRef) { 
+
+  constructor(private ref: ChangeDetectorRef, private sdkService: SdkService) {
   }
 
   ngOnInit() {
-
+    this.sdkService.initChannel({}, (tag, tx) => {
+      debugger
+      return this.sdkService.initiatorAccount.signTransaction(tx);
+    }).then(channel => { debugger }).catch(e => { debugger })
   }
 
   ngAfterViewInit() {
@@ -104,7 +108,7 @@ export class OnetransactionComponent implements OnInit {
       setTimeout(() => {
         console.log("Time is up!")
         this.state = 'hidden'
-      }); 
+      });
     }
 
     console.log(this.theEntry)
@@ -114,7 +118,7 @@ export class OnetransactionComponent implements OnInit {
     this.isHovered = true
     setTimeout(() => {
       this.delayedIsHovered = true
-      this.ref.detectChanges() 
+      this.ref.detectChanges()
     }, 400);
   }
 
@@ -122,11 +126,11 @@ export class OnetransactionComponent implements OnInit {
     setTimeout(() => {
       this.isExpanded == true ? this.delayedIsHovered = true : this.delayedIsHovered = false
 
-      this.ref.detectChanges()  
+      this.ref.detectChanges()
     }, 400);
 
-    
- 
+
+
   }
 
   mouseLeaveTxcontent() {
@@ -142,7 +146,7 @@ export class OnetransactionComponent implements OnInit {
         return this._show;
       }
 
-      @Input() 
+      @Input()
       set show(value: boolean) {
         if (value) {
           // show the content and set it's state to trigger fade in animation
@@ -156,7 +160,7 @@ export class OnetransactionComponent implements OnInit {
 
       animationDone(event: AnimationEvent) {
        /*  console.log("Done changing a state !")
-        // now remove the 
+        // now remove the
         if (event.fromState === 'visible' && event.toState === 'hidden') {
           this._show = false;
         } */
