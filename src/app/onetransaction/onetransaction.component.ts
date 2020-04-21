@@ -96,10 +96,6 @@ export class OnetransactionComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.sdkService.initChannel({}, (tag, tx) => {
-      debugger
-      return this.sdkService.initiatorAccount.signTransaction(tx);
-    }).then(channel => { debugger }).catch(e => { debugger })
   }
 
   ngAfterViewInit() {
