@@ -2,6 +2,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http'
 import { AppRoutingModule } from './app-routing.module';
+import { StorageServiceModule } from 'ngx-webstorage-service';
 import { AppComponent } from './app.component';
 import { TransactionlistComponent } from './transactionlist/transactionlist.component';
 import { OnetransactionComponent } from './onetransaction/onetransaction.component';
@@ -24,7 +25,8 @@ import { SdkService } from './sdk.service';
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
-    HttpClientModule
+    HttpClientModule,
+    StorageServiceModule
   ],
   providers: [SdkService],
   bootstrap: [AppComponent]
