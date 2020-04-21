@@ -1,6 +1,8 @@
-import {Injectable} from '@angular/core';
+import {Injectable, Inject} from '@angular/core';
 import {environment} from '../environments/environment';
 import {HttpClient} from '@angular/common/http';
+import { LOCAL_STORAGE, StorageService } from 'ngx-webstorage-service';
+
 
 import Channel from '@aeternity/aepp-sdk/es/channel';
 // import {Universal} from '@aeternity/aepp-sdk/es/ae/universal';
@@ -35,7 +37,11 @@ export class SdkService {
   backendServiceUrl: string = environment.BACKEND_SERVICE_URL;
 
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {
+
+    // storage example:
+    this.storage.set("key", "value");
+    this.storage.get("key"); // => "value"
   }
   signTx(tag, tx) {
     if (confirm('Do you want to sign this tx -> ' + tag)) { return this.initiatorAccount.signTransaction(tx); }
