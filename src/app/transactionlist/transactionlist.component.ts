@@ -1,4 +1,5 @@
 import { Component, OnInit, Pipe, PipeTransform } from '@angular/core';
+import { SdkService } from '../sdk.service'
 
 @Component({
   selector: 'app-transactionlist',
@@ -11,10 +12,11 @@ export class TransactionlistComponent implements OnInit {
   dummyUpdates: any[] = [{type:"out"}, {type:"out"}, {type:"out"}, {type:"in"}, {type:"in"}, {type:"out"}]
   channelUpdates: any[] = []
 
-  constructor() {
+  constructor(private sdk: SdkService) {
 
   }
 
+  
   ngOnInit() {
     this.channelUpdates = ["foo"];
 

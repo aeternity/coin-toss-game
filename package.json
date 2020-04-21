@@ -7,10 +7,12 @@
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "postinstall": "node patch.js"
   },
   "private": true,
   "dependencies": {
+    "@aeternity/aepp-sdk": "^7.2.1",
     "@angular/animations": "~8.0.3",
     "@angular/common": "~8.0.3",
     "@angular/compiler": "~8.0.3",
