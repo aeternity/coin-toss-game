@@ -1,4 +1,4 @@
-TO start the application with nodeservice and node pointed at the remote server, do:
+To start the application with nodeservice and node pointed at the remote server, do:
 
 ```
 $ npm install -g @angular/cli
