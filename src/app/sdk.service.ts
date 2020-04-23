@@ -68,6 +68,7 @@ export class ChannelInstance {
   private $channel;
   private $initiatorAccount;
   state = new Subject()
+  status = new Subject()
   channelParams;
   networkId: string;
   opened;
@@ -112,6 +113,7 @@ export class ChannelInstance {
     this.$channel = await Channel({
       ...this.channelParams,
       sign: this.signTx.bind(this),
+      debug: true
       // debug: true
     });
     // Register round handler
@@ -125,6 +127,7 @@ export class ChannelInstance {
       localStorage.setItem('round', this.channel.round());
     });
     this.$channel.on('statusChanged', (status) => {
+      this.status.next(status);
       localStorage.setItem('status', this.channel.status());
       if (status === 'open') {
         localStorage.setItem('channel', JSON.stringify({
