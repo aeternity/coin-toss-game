@@ -16,23 +16,17 @@ export class TransactionlistComponent implements OnInit {
 
   }
 
-  initChannelAndMakeTransfer() {
+  initChannelAndWaitForContract() {
     this.sdkService.initChannel().then(async (channel) => {
       channel.onOpened(async () => {
-        // here channel already opened
-        // When channel is created backend service deploy the contract
-        // this timeout will wait until this happens to avoid conflicts
-        setTimeout(async () => {
-          const balanceBefore = await channel.channel.balances([channel.channelParams.initiatorId, channel.channelParams.responderId]);
-          const transfer = await channel.transfer(channel.channelParams.initiatorId, channel.channelParams.responderId, 100000);
-          const balanceAfter = await channel.channel.balances([channel.channelParams.initiatorId, channel.channelParams.responderId]);
-        }, 15000);
+        // Block all channel operations util contract is created
+        await channel.awaitContractCreate();
       });
     }).catch(e => { debugger });
   }
 
   ngOnInit() {
-    this.initChannelAndMakeTransfer()
+    this.initChannelAndWaitForContract();
     this.channelUpdates = ["foo"];
 
     console.log(Math.random());

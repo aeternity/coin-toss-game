@@ -7,6 +7,7 @@ import Channel from '@aeternity/aepp-sdk/es/channel';
 import MemoryAccount from '@aeternity/aepp-sdk/es/account/memory';
 import { unpackTx } from '@aeternity/aepp-sdk/es/tx/builder';
 import * as StringUtils from '@aeternity/aepp-sdk/es/utils/string';
+import {Subject} from "rxjs";
 
 
 enum ActionTypes {
@@ -66,9 +67,11 @@ export class SdkService {
 export class ChannelInstance {
   private $channel;
   private $initiatorAccount;
+  state = new Subject()
   channelParams;
   networkId: string;
   opened;
+  actionBlocked: any = false;
 
   constructor(params, account, { networkId } = { networkId: 'ae_channel_service_test' }) {
     this.channelParams = params;
@@ -78,6 +81,22 @@ export class ChannelInstance {
 
   get channel() {
     return this.$channel;
+  }
+
+  async awaitContractCreate() {
+    return new Promise(resolve => {
+      const subscription = this.state.subscribe(({ unpacked }) => {
+        if (unpacked.tx.encodedTx.txType === 'channelOffChain'
+          && unpacked.tx.encodedTx.tx.updates[0]
+          && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCreateContract'
+        ) {
+          subscription.unsubscribe();
+          this.actionBlocked = false;
+          resolve();
+        }
+      });
+      this.actionBlocked = 'Waiting for contract create.';
+    });
   }
 
   async signTx(tag, tx) {
@@ -98,8 +117,11 @@ export class ChannelInstance {
     // Register round handler
     // Update round in local storage for each change
     this.$channel.on('stateChanged', async (newState) => {
+      const unpacked = unpackTx(newState)
+      console.log('New state: ', unpacked);
+      this.state.next({ state: newState, unpacked });
       localStorage.setItem('fsmId', this.channel.fsmId());
-      localStorage.setItem('state', JSON.stringify({ stateTx: newState, offChainState: await this.channel.state() }));
+      localStorage.setItem('state', JSON.stringify({ stateTx: newState }));
       localStorage.setItem('round', this.channel.round());
     });
     this.$channel.on('statusChanged', (status) => {
@@ -151,14 +173,23 @@ export class ChannelInstance {
   }
 
   async deposit(amount: number | string) {
-      return await this.channel.deposit(amount, tx => this.signTx('deposit_tx', tx));
+    if (this.actionBlocked) {
+      throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
+    }
+    return await this.channel.deposit(amount, tx => this.signTx('deposit_tx', tx));
   }
 
   async transfer(from: string, to: string, amount: number | string) {
+    if (this.actionBlocked) {
+      throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
+    }
     return await this.channel.update(from, to, amount, tx => this.signTx('deposit_tx', tx));
   }
 
   async withdrawal(amount: number | string) {
+    if (this.actionBlocked) {
+      throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
+    }
     return await this.channel.withdrawal(amount, tx => this.signTx('withdrawal_tx', tx));
   }
 
@@ -167,6 +198,9 @@ export class ChannelInstance {
   }
 
   async closeChannel() {
+    if (this.actionBlocked) {
+      throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
+    }
     this.channel.disconnect();
     return this.channel.shutdown(tx => this.signTx('shutdown_tx', tx));
   }
