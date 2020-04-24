@@ -20,7 +20,7 @@ export class TransactionlistComponent implements OnInit {
     this.sdkService.initChannel().then(async (channel) => {
       channel.onOpened(async () => {
         // Block all channel operations util contract is created
-        await channel.awaitContractCreate();
+        const contractAddress = await channel.awaitContractCreate();
       });
     }).catch(e => { debugger });
   }

@@ -6,8 +6,9 @@ import Channel from '@aeternity/aepp-sdk/es/channel';
 
 import MemoryAccount from '@aeternity/aepp-sdk/es/account/memory';
 import { unpackTx } from '@aeternity/aepp-sdk/es/tx/builder';
+import { buildContractId } from '@aeternity/aepp-sdk/es/tx/builder/helpers';
 import * as StringUtils from '@aeternity/aepp-sdk/es/utils/string';
-import {Subject} from "rxjs";
+import {Subject} from 'rxjs';
 
 
 enum ActionTypes {
@@ -67,8 +68,8 @@ export class SdkService {
 export class ChannelInstance {
   private $channel;
   private $initiatorAccount;
-  state = new Subject()
-  status = new Subject()
+  state = new Subject();
+  status = new Subject();
   channelParams;
   networkId: string;
   opened;
@@ -92,8 +93,10 @@ export class ChannelInstance {
           && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCreateContract'
         ) {
           subscription.unsubscribe();
+          const round = unpacked.tx.encodedTx.tx.round;
+          const owner = unpacked.tx.encodedTx.tx.updates[0].tx.owner;
           this.actionBlocked = false;
-          resolve();
+          resolve(buildContractId(owner, round));
         }
       });
       this.actionBlocked = 'Waiting for contract create.';
@@ -113,13 +116,12 @@ export class ChannelInstance {
     this.$channel = await Channel({
       ...this.channelParams,
       sign: this.signTx.bind(this),
-      debug: true
-      // debug: true
+      debug: false // log WebSocket messages
     });
     // Register round handler
     // Update round in local storage for each change
     this.$channel.on('stateChanged', async (newState) => {
-      const unpacked = unpackTx(newState)
+      const unpacked = unpackTx(newState);
       console.log('New state: ', unpacked);
       this.state.next({ state: newState, unpacked });
       localStorage.setItem('fsmId', this.channel.fsmId());
