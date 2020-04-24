@@ -50,8 +50,8 @@ export class SdkService {
   constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {
 
     // storage example:
-    // this.storage.set("key", "value");
-    // this.storage.get("key"); // => "value"
+    this.storage.set("key", "value");
+    this.storage.get("key"); // => "value"
   }
 
   get channel() {
@@ -111,6 +111,7 @@ export class ChannelInstance {
   error = new BehaviorSubject(null);
   state = new Subject();
   status = new BehaviorSubject(null);
+  private http: HttpClient;
   channelParams;
   networkId: string;
   opened;
@@ -124,6 +125,8 @@ export class ChannelInstance {
     this.channelParams = params;
     this.networkId = networkId;
     this.$storage = storage;
+    this.channelParams = params;
+
   }
 
   set code(code: string) {
@@ -307,6 +310,21 @@ export class ChannelInstance {
         callback();
       }
     });
+  }
+
+  async getContractCode() {
+    return this.http
+      .get(`app/assets/contract.aes`, {responseType: 'text'})
+      .toPromise();
+  }
+
+  async doContractCall(contractAddress: string, side: string, amount: number) {
+    if (!this.channel) {
+      throw new Error('Channel create process is npt started. Please run `openChannel()`');
+    }
+    const contractSource = await this.getContractCode();
+    const callData = await this.$initiatorAccount.contractEncodeCallDataAPI(contractSource, 'bet', [side], {backend: 'aevm'})
+    await this.channel.callContract({amount: amount, callData, contract: contractAddress, abiVersion: 1})
   }
 
   /**
