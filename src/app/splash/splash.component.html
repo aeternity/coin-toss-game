@@ -1,0 +1,32 @@
+<div>
+  <h1>Welcome to the coin toss game</h1>
+  <div [ngSwitch]="state" class="state-indicator">
+    <div *ngSwitchCase="stateEnum.loading">
+      <div [ngSwitch]="channelState" class="state-indicator">
+        <div *ngSwitchCase="channelStateEnum.initial">
+          Creating channel...
+        </div>
+        <div *ngSwitchCase="channelStateEnum.channelCreated">
+          Creating contract...
+        </div>
+        <div *ngSwitchCase="channelStateEnum.contractCreated">
+          Tossing Coin...
+        </div>
+        <div *ngSwitchCase="channelStateEnum.hashInserted">
+          Ready for your guess :)
+        </div>
+      </div>
+    </div>
+    <div *ngSwitchCase="stateEnum.error">
+      Do something for Option2
+    </div>
+    <div *ngSwitchCase="stateEnum.deposit">
+      Press the button to deposit some money
+      <button>Deposit</button>
+    </div>
+    <div *ngSwitchCase="stateEnum.ready">
+      Press the button to start the game
+      <button>Start</button>
+    </div>
+  </div>
+</div>
