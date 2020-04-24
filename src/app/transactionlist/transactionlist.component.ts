@@ -4,7 +4,7 @@ import { SdkService } from '../sdk.service'
 @Component({
   selector: 'app-transactionlist',
   templateUrl: './transactionlist.component.html',
-  styleUrls: ['../../../ArrowNavigationStyles/css/demo.css','../../../ArrowNavigationStyles/css/component.css','../../../ArrowNavigationStyles/css/normalize.css']
+  styleUrls: ['../../../ArrowNavigationStyles/css/demo.css', '../../../ArrowNavigationStyles/css/component.css', '../../../ArrowNavigationStyles/css/normalize.css']
 })
 export class TransactionlistComponent implements OnInit {
 
@@ -16,21 +16,17 @@ export class TransactionlistComponent implements OnInit {
 
   }
 
-  initChannelAndMakeTransfer() {
-    this.sdkService.initChannel({}).then(channel => {
-      // here channel already initialized
-      // Make transfer
-      channel.update(
-        this.sdkService.initiatorAccount.address(),
-        this.sdkService.channelParams.responderId,
-        10000,
-        this.sdkService.signTx
-      ).then(res => { debugger }).error(error => { debugger })
+  initChannelAndWaitForContract() {
+    this.sdkService.initChannel().then(async (channel) => {
+      channel.onOpened(async () => {
+        // Block all channel operations util contract is created
+        const contractAddress = await channel.awaitContractCreate();
+      });
     }).catch(e => { debugger });
   }
 
   ngOnInit() {
-    this.initChannelAndMakeTransfer()
+    this.initChannelAndWaitForContract();
     this.channelUpdates = ["foo"];
 
     console.log(Math.random());
