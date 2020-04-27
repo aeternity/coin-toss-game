@@ -4,8 +4,10 @@
 
 export const environment = {
   production: false,
-  SC_NODE_URL: 'ws://95.216.27.196:3014/channel',
-  BACKEND_SERVICE_URL: 'http://95.216.27.196:4001'
+  SC_NODE_URL: 'ws://localhost:3014/channel',
+  BACKEND_SERVICE_URL: 'http://localhost:4000',
+  NODE_URL: 'http://localhost:3013',
+  COMPILER_URL: 'http://localhost:3080'
 };
 
 /*
