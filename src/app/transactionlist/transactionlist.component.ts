@@ -22,23 +22,24 @@ export class TransactionlistComponent implements OnInit {
 
   initChannelAndWaitForContract() {
     const txTypes = []; // [ 'signedTx' ]
-    this.sdkService.initChannel([]).then(async (channel) => {
+    this.sdkService.initChannel().then(async (channel) => {
       // On onChain Tx
-      channel.onChainTx.subscribe(({ tx, unpacked, info }) => {
-        console.log('---------- OnChainTx: ', unpacked);
+      channel.onChainTx.subscribe((data) => {
+        console.log('---------- OnChainTx: ', data);
       });
       // On error
-      channel.error.subscribe(({ error }) => {
+      channel.error.subscribe((error) => {
         console.log('---------- On Error ', error);
       });
       // On new state
-      channel.state.subscribe(({ unpacked, state }) => {
-        console.log('---------- New state: ', unpacked);
+      channel.state.subscribe((state) => {
+        console.log('---------- New state: ', state);
       });
       // On new status
       channel.status.subscribe((status) => {
         console.log('---------- New status: ', status);
       });
+      // setTimeout(() => channel.diconnect(), 1300);
       // Subscribe for signing of specific transactions type
       // Or another transactions will be signed automaticaly
       channel.onSign(txTypes).subscribe(({ unpacked, accept, deny, networkId, tag }) => {
@@ -56,7 +57,7 @@ export class TransactionlistComponent implements OnInit {
         const contractAddress = await channel.awaitContractCreate();
         console.log('--------------- Contract Deployed ---------------');
         // Make a contract call
-        // const callRes = await channel.contractCall('bet', contractAddress, [1000]);
+        const callRes = await channel.contractCall('player_pick', contractAddress, ['head']);
       });
     }).catch(e => {  console.log(e); });
   }
