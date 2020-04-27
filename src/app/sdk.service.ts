@@ -72,7 +72,7 @@ export class SdkService {
       .reduce((acc, [key, value]) => ({ ...acc, [StringUtils.snakeToPascal(key)]: value }), { url: this.wsUrl });
   }
 
-  async initChannel(params: any = {}) {
+  async initChannel() {
     const address = await this.initiatorAccount.address();
     const channelConfig = await this.getChannelConfig({ address, port: 1564 });
     this.$sdkInstance = await Universal({
@@ -83,7 +83,7 @@ export class SdkService {
     this.$channel = new ChannelInstance(
       channelConfig,
       this.$sdkInstance,
-      { code: await this.getContractCode().catch(e => null), storage: this.storage }
+      { code: await this.getContractCode().catch(() => null), storage: this.storage }
     );
     await this.channel.openChannel();
     return this.channel;
@@ -98,8 +98,8 @@ export class ChannelInstance {
   private $channel;
   private $initiatorAccount;
   private $onSign = new Subject();
-  onChainTx = new Subject();
-  error = new Subject();
+  onChainTx = new BehaviorSubject(null);
+  error = new BehaviorSubject(null);
   state = new BehaviorSubject({ state: null, unpacked: null });
   status = new BehaviorSubject(null);
   channelParams;
@@ -123,15 +123,71 @@ export class ChannelInstance {
     return this.$channel;
   }
 
-  onSign(txTypes: string[] = []) {
-    return this.$onSign.pipe(
-      filter(({ unpacked }) => !txTypes.length || txTypes.includes(unpacked.txType))
-    );
+  /**
+   * Connection
+   */
+  private registerHandlers() {
+    if (!this.channel) {
+      throw new Error('Channel create process is not started. Please run `openChannel()`');
+    }
+    // Register round handler
+    // Update round in local storage for each change
+    this.$channel.on('stateChanged', async (newState) => {
+      this.state.next({ state: newState, unpacked: unpackTx(newState) });
+      this.$storage.set('fsmId', this.channel.fsmId());
+      this.$storage.set('state', JSON.stringify({ stateTx: newState }));
+      this.$storage.set('round', this.channel.round());
+    });
+    this.$channel.on('statusChanged', (status) => {
+      this.status.next(status);
+      this.$storage.set('status', this.channel.status());
+      if (status === 'open') {
+        this.$storage.set('channel', JSON.stringify({
+          params: this.channelParams,
+          id: this.channel.id()
+        }));
+      }
+    });
+    this.$channel.on('onChainTx', (tx, info) => this.onChainTx.next({ tx, info, unpacked: unpackTx(tx) }));
+    this.$channel.on('error', (error, info) => this.error.next({ error, info }));
   }
 
+  async reconnect() {
+    const existingFsmId = this.$storage.get('fsmId');
+    const existingChannelId = this.$storage.get('channel').id;
+    const offchainTx = this.$storage.get('state').stateTx;
+    this.$channel = await Channel({
+      ...this.channelParams,
+      sign: this.signTx.bind(this),
+      debug: true, // log WebSocket messages,
+      existingFsmId,
+      existingChannelId,
+      offchainTx
+    });
+    this.registerHandlers();
+  }
+
+  async openChannel() {
+    this.$channel = await Channel({
+      ...this.channelParams,
+      sign: this.signTx.bind(this),
+      debug: false // log WebSocket messages
+    });
+    this.registerHandlers();
+  }
+
+  disconnect() {
+    this.channel.disconnect();
+    this.state.next({ state: null, unpacked: null }) ;
+    this.state.next(null);
+  }
+
+  /**
+   * Handlers
+   */
   async awaitContractCreate() {
     return new Promise(resolve => {
-      const subscription = this.state.subscribe(({ state, unpacked }) => {
+      const subscription = this.state.subscribe(({ unpacked }) => {
         if (unpacked.tx.encodedTx.txType === 'channelOffChain'
           && unpacked.tx.encodedTx.tx.updates[0]
           && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCreateContract'
@@ -164,32 +220,10 @@ export class ChannelInstance {
     });
   }
 
-  async openChannel() {
-    this.$channel = await Channel({
-      ...this.channelParams,
-      sign: this.signTx.bind(this),
-      debug: false // log WebSocket messages
-    });
-    // Register round handler
-    // Update round in local storage for each change
-    this.$channel.on('stateChanged', async (newState) => {
-      this.state.next({ state: newState, unpacked: unpackTx(newState) });
-      this.$storage.set('fsmId', this.channel.fsmId());
-      this.$storage.set('state', JSON.stringify({ stateTx: newState }));
-      this.$storage.set('round', this.channel.round());
-    });
-    this.$channel.on('statusChanged', (status) => {
-      this.status.next(status);
-      this.$storage.set('status', this.channel.status());
-      if (status === 'open') {
-        this.$storage.set('channel', JSON.stringify({
-          params: this.channelParams,
-          id: this.channel.id()
-        }));
-      }
-    });
-    this.$channel.on('onChainTx', (tx, info) => this.onChainTx.next({ tx, info, unpacked: unpackTx(tx) }));
-    this.$channel.on('error', (error, info) => this.error.next({ error, info }));
+  onSign(txTypes: string[] = []) {
+    return this.$onSign.pipe(
+      filter(({ unpacked }) => !txTypes.length || txTypes.includes(unpacked.txType))
+    );
   }
 
   onOpened(callback) {
@@ -229,6 +263,9 @@ export class ChannelInstance {
     return this.channel.on(action, callback);
   }
 
+  /**
+   * API
+   */
   async deposit(amount: number | string) {
     if (this.actionBlocked) {
       throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
@@ -248,10 +285,6 @@ export class ChannelInstance {
       throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
     }
     return await this.channel.withdrawal(amount, tx => this.signTx('withdrawal_tx', tx));
-  }
-
-  disconnect(amount: number | string) {
-    this.channel.disconnect();
   }
 
   async closeChannel() {
