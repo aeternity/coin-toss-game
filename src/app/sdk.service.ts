@@ -22,7 +22,8 @@ enum ActionTypes {
   withdrawLocked = 'withdrawLocked',
   ownDepositLocked = 'ownDepositLocked',
   depositLocked = 'depositLocked',
-  statusChanged = 'statusChanged'
+  statusChanged = 'statusChanged',
+  stateChanged = 'stateChanged',
 }
 
 @Injectable({
@@ -132,13 +133,13 @@ export class ChannelInstance {
     }
     // Register round handler
     // Update round in local storage for each change
-    this.$channel.on('stateChanged', async (newState) => {
+    this.$channel.on(ActionTypes.stateChanged, async (newState) => {
       this.state.next({ state: newState, unpacked: unpackTx(newState) });
       this.$storage.set('fsmId', this.channel.fsmId());
       this.$storage.set('state', JSON.stringify({ stateTx: newState }));
       this.$storage.set('round', this.channel.round());
     });
-    this.$channel.on('statusChanged', (status) => {
+    this.$channel.on(ActionTypes.statusChanged, (status) => {
       this.status.next(status);
       this.$storage.set('status', this.channel.status());
       if (status === 'open') {
@@ -148,14 +149,14 @@ export class ChannelInstance {
         }));
       }
     });
-    this.$channel.on('onChainTx', (tx, info) => this.onChainTx.next({ tx, info, unpacked: unpackTx(tx) }));
-    this.$channel.on('error', (error, info) => this.error.next({ error, info }));
+    this.$channel.on(ActionTypes.onChainTx, (tx, info) => this.onChainTx.next({ tx, info, unpacked: unpackTx(tx) }));
+    this.$channel.on(ActionTypes.error, (error, info) => this.error.next({ error, info }));
   }
 
   async reconnect() {
     const existingFsmId = this.$storage.get('fsmId');
     const existingChannelId = this.$storage.get('channel').id;
-    const offchainTx = this.$storage.get('state').stateTx;
+    const offchainTx = JSON.parse(this.$storage.get('state')).stateTx;
     this.$channel = await Channel({
       ...this.channelParams,
       sign: this.signTx.bind(this),
