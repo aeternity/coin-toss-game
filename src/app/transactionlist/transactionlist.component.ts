@@ -24,32 +24,39 @@ export class TransactionlistComponent implements OnInit {
     const txTypes = []; // [ 'signedTx' ]
     this.sdkService.initChannel([]).then(async (channel) => {
       // On onChain Tx
-      channel.onChainTx.subscribe(tx => {
-        console.log('OnChainTx: ', tx);
+      channel.onChainTx.subscribe(({ tx, unpacked, info }) => {
+        console.log('---------- OnChainTx: ', unpacked);
       });
       // On error
-      channel.error.subscribe(error => {
-        console.log('On Error ', error);
+      channel.error.subscribe(({ error }) => {
+        console.log('---------- On Error ', error);
       });
       // On new state
       channel.state.subscribe(({ unpacked, state }) => {
-        console.log('New state: ', unpacked);
+        console.log('---------- New state: ', unpacked);
       });
       // On new status
       channel.status.subscribe((status) => {
-        console.log('New status: ', status);
+        console.log('---------- New status: ', status);
       });
       // Subscribe for signing of specific transactions type
       // Or another transactions will be signed automaticaly
-      channel.onSign(txTypes).subscribe(({ unpacked, accept, deny }) => {
+      channel.onSign(txTypes).subscribe(({ unpacked, accept, deny, networkId, tag }) => {
+        console.log('---------- Channel signing -----------');
+        console.log('Channel sign networkId: ' + networkId);
+        console.log('Channel sign tag -> ' + tag);
+        console.log('Channel sign transaction: ', unpacked);
+        console.log('---------------------------------------');
         accept();
       });
       // On opened callback
       channel.onOpened(async () => {
+        console.log('--------------- Channel Opened On-Chain ---------------');
         // Block all channel operations util contract is created
         const contractAddress = await channel.awaitContractCreate();
+        console.log('--------------- Contract Deployed ---------------');
         // Make a contract call
-        const callRes = await channel.contractCall('bet', contractAddress, [1000]);
+        // const callRes = await channel.contractCall('bet', contractAddress, [1000]);
       });
     }).catch(e => {  console.log(e); });
   }

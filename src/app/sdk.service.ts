@@ -149,16 +149,13 @@ export class ChannelInstance {
 
   async signTx(tag, tx) {
     const unpacked = unpackTx(tx);
-    console.log('Channel signing -----------');
-    console.log('Signing using networkId -> ' + this.networkId);
-    console.log('Channel sign tag -> ' + tag);
-    console.log('Channel sign transaction: ', unpacked);
-    console.log('---------------------------');
     return new Promise(async (resolve, reject) => {
       if (!this.$onSign.observers.length) {
         resolve(await this.$initiatorAccount.signTransaction(tx, { networkId: this.networkId }));
       }
       this.$onSign.next({
+        networkId: this.networkId,
+        tag,
         unpacked,
         tx,
         accept: async () => resolve(await this.$initiatorAccount.signTransaction(tx, { networkId: this.networkId })),
@@ -176,15 +173,12 @@ export class ChannelInstance {
     // Register round handler
     // Update round in local storage for each change
     this.$channel.on('stateChanged', async (newState) => {
-      const unpacked = unpackTx(newState);
-      console.log('New state: ', unpacked);
-      this.state.next({ state: newState, unpacked });
+      this.state.next({ state: newState, unpacked: unpackTx(newState) });
       this.$storage.set('fsmId', this.channel.fsmId());
       this.$storage.set('state', JSON.stringify({ stateTx: newState }));
       this.$storage.set('round', this.channel.round());
     });
     this.$channel.on('statusChanged', (status) => {
-      console.log('New status: ', status);
       this.status.next(status);
       this.$storage.set('status', this.channel.status());
       if (status === 'open') {
@@ -194,8 +188,8 @@ export class ChannelInstance {
         }));
       }
     });
-    this.$channel.on('onChainTx', this.onChainTx.next);
-    this.$channel.on('error', this.error.next);
+    this.$channel.on('onChainTx', (tx, info) => this.onChainTx.next({ tx, info, unpacked: unpackTx(tx) }));
+    this.$channel.on('error', (error, info) => this.error.next({ error, info }));
   }
 
   onOpened(callback) {

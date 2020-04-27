@@ -102,12 +102,12 @@ export class OnetransactionComponent implements OnInit {
     this.state = "in";
     if (this.state == 'visible') {
       setTimeout(() => {
-        console.log("Time is up!")
+        // console.log("Time is up!")
         this.state = 'hidden'
       });
     }
 
-    console.log(this.theEntry)
+    // console.log(this.theEntry)
   }
 
   mouseOverArrow () {
@@ -130,7 +130,7 @@ export class OnetransactionComponent implements OnInit {
   }
 
   mouseLeaveTxcontent() {
-    console.log("mouse left content!");
+    // console.log("mouse left content!");
     this.delayedIsHovered = false;
     //this.ref.markForCheck();
   }

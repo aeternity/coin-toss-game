@@ -13,7 +13,7 @@ export class OneUpdateComponent implements OnInit {
   constructor() { }
 
   ngOnInit() {
-    console.log(this.update)
+    // console.log(this.update)
   }
 
 }

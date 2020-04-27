@@ -31,11 +31,11 @@ import {
         group([
           animate('400ms 0.4s ease', style({
             transform: 'translateX(0)',
-            
+
             //height:'41px'
           })),
           animate('300ms 0.1s ease-in', style({
-            opacity: 1  
+            opacity: 1
           }))
         ])
       ]),
@@ -46,11 +46,11 @@ import {
     /* trigger('isHovered', [
       state('false', style({
        // no clue what this does:
-        height: '64px', 
+        height: '64px',
       })),
       state('true', style({
         // no clue what this does:
-         height: '144px', 
+         height: '144px',
        })),
       transition('void => *', [
         style({ height: '64px' }),
@@ -59,7 +59,7 @@ import {
             height: '64px',
           })),
           animate('300ms 0.1s ease-in', style({
-            opacity: 1  
+            opacity: 1
           }))
         ]),
       ]),
@@ -70,7 +70,7 @@ import {
             height: '144px',
           })),
           animate('300ms 0.1s ease-in', style({
-            opacity: 1  
+            opacity: 1
           }))
         ]),
       ]),
@@ -90,8 +90,8 @@ export class OneIncomingTransactionComponent implements OnInit {
   isExpanded: boolean = false;
   isHovered: boolean = false;
   delayedIsHovered: boolean = false;
-  
-  constructor(private ref: ChangeDetectorRef) { 
+
+  constructor(private ref: ChangeDetectorRef) {
   }
 
   ngOnInit() {
@@ -102,21 +102,21 @@ export class OneIncomingTransactionComponent implements OnInit {
     this.state = "in";
     if (this.state == 'visible') {
       setTimeout(() => {
-        console.log("Time is up!")
+        // console.log("Time is up!")
         this.state = 'hidden'
-      }); 
+      });
     }
 
-    console.log(this.theEntry)
+    // console.log(this.theEntry)
   }
 
   mouseOverArrow () {
-    console.log("Arrow hovered!")
+    // console.log("Arrow hovered!")
     this.isHovered = true
-    this.ref.detectChanges() 
+    this.ref.detectChanges()
     setTimeout(() => {
       this.delayedIsHovered = true
-      this.ref.detectChanges() 
+      this.ref.detectChanges()
     }, 400);
   }
 
@@ -125,15 +125,15 @@ export class OneIncomingTransactionComponent implements OnInit {
     setTimeout(() => {
       this.isExpanded == true ? this.delayedIsHovered = true : this.delayedIsHovered = false
 
-      this.ref.detectChanges()  
+      this.ref.detectChanges()
     }, 400);
 
-    
- 
+
+
   }
 
   mouseLeaveTxcontent() {
-    console.log("mouse left content!");
+    // console.log("mouse left content!");
     this.delayedIsHovered = false;
     //this.ref.markForCheck();
   }
@@ -145,7 +145,7 @@ export class OneIncomingTransactionComponent implements OnInit {
         return this._show;
       }
 
-      @Input() 
+      @Input()
       set show(value: boolean) {
         if (value) {
           // show the content and set it's state to trigger fade in animation
@@ -159,7 +159,7 @@ export class OneIncomingTransactionComponent implements OnInit {
 
       animationDone(event: AnimationEvent) {
        /*  console.log("Done changing a state !")
-        // now remove the 
+        // now remove the
         if (event.fromState === 'visible' && event.toState === 'hidden') {
           this._show = false;
         } */
