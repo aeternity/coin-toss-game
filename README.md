@@ -16,6 +16,14 @@ You can serve the application pointed pointing the channel service and node to b
 with this command:
 `ng serve --configuration=localhost`
 
+Short description by Keno:
+```
+1. create contract
+2. backend provides hash
+3. player picks a side
+4. backend calls reveal
+5. you win / lose
+```
 
 Description of the final (!) game by Dimitar (progressing in steps might be smart):
 
