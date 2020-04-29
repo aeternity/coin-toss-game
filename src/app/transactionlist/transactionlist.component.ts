@@ -59,11 +59,18 @@ export class TransactionlistComponent implements OnInit {
         // Block all channel operations util contract is created
         const contractAddress = await channel.awaitContractCreate();
         console.log('--------------- Contract Deployed ---------------');
-        const BackendSetHash = await channel.awaitContractCall();
+        const BackendSetHash = await channel.awaitContractCall('provide_hash');
         console.log('--------------- Backend set the hash ---------------');
-        // Make a contract call
-        const callRes = await channel.contractCall('player_pick', contractAddress, ['"tail"']);
+        // Make a contract call (provide a coin side)
+        const callRes = await channel.contractCall('player_pick', contractAddress, ['"tails"']);
         console.log('--------------- Client pick a coin side ---------------');
+        console.log(`call decoded res -> `, callRes);
+        // Wait of `reveal`
+        const RevealByBackend = await channel.awaitContractCall('reveal');
+        // Wait of `drain`
+        const DrainByBackend = await channel.awaitContractCall('drain');
+        // TODO Initiate shutdown
+
       });
     }).catch(e => {  console.log(e); });
   }
