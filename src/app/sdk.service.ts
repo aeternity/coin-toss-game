@@ -216,6 +216,19 @@ export class ChannelInstance {
     });
   }
 
+  async unpackAndDecodeContractCallTx(unpacked, fnName) {
+    const round = unpacked.tx.encodedTx.tx.round;
+    const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
+    const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
+    this.actionBlocked = false;
+    // TODO decode call data to know what FN is called
+    // debugger
+    // const decodedCallData = await this.decodeCallData(fnName, unpacked.tx.encodedTx.tx.updates[0].tx.callData);
+    // debugger
+    const callRes = await this.channel.getContractCall({ caller, contract, round });
+    return await this.decodeCallResult(fnName, callRes.returnValue, callRes.returnType);
+  }
+
   async awaitContractCall(fnName) {
     return new Promise((resolve, reject) => {
       try {
@@ -224,17 +237,10 @@ export class ChannelInstance {
             && unpacked.tx.encodedTx.tx.updates[0]
             && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCallContract'
           ) {
-            setTimeout(() => subscription.unsubscribe(), 1000)
-            const round = unpacked.tx.encodedTx.tx.round;
-            const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
-            const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
+            const decodedResult = await this.unpackAndDecodeContractCallTx(unpacked, fnName);
             this.actionBlocked = false;
-            // TODO decode call data to know what FN is called
-            // debugger
-            // const decodedCallData = await this.decodeCallData(fnName, unpacked.tx.encodedTx.tx.updates[0].tx.callData);
-            // debugger
-            const callRes = await this.channel.getContractCall({ caller, contract, round });
-            resolve(await this.decodeCallResult(fnName, callRes.returnValue, callRes.returnType));
+            subscription.unsubscribe();
+            resolve(decodedResult);
           }
         });
         this.actionBlocked = 'Waiting for contract create.';
@@ -453,7 +459,7 @@ contract CoinToss =
   entrypoint compute_hash(key: string, coin_side: string) : hash =
     ensure_coin_side(coin_side)
     String.sha256(String.concat(key, coin_side))
-    
+
   // internal functions
 
   function ensure_coin_side(coin_side: string) =
@@ -462,13 +468,13 @@ contract CoinToss =
   function ensure_player_turn_to_pick() =
     require(state.hash != None, "no_hash")
     require(state.player_pick == None, "there_is_a_pick_already")
-  
+
   function ensure_casino_turn_to_reveal() =
     require(state.player_pick != None, "there_is_no_pick")
 
   function require_player() =
     require(Call.caller == state.player, "not_player")
-    
+
   function require_casino() =
     require(Call.caller == state.casino, "not_casino")
 

@@ -63,11 +63,13 @@ export class TransactionlistComponent implements OnInit {
         console.log('--------------- Backend set the hash ---------------');
         // Make a contract call (provide a coin side)
         const callRes = await channel.contractCall('player_pick', contractAddress, ['"tails"']);
-        console.log('--------------- Client pick a coin side ---------------');
+        console.log('--------------- Client pick a coin side ---------------', callRes);
         // Wait of `reveal`
         const RevealByBackend = await channel.awaitContractCall('reveal');
-        // Wait of `drain`
-        const DrainByBackend = await channel.awaitContractCall('drain');
+        console.log('--------------- Backend call reveal ---------------', RevealByBackend);
+        // // Wait of `drain`
+        // const DrainByBackend = await channel.awaitContractCall('drain');
+        // console.log('---------------  Backend call drain ---------------', DrainByBackend);
         // TODO Initiate shutdown
 
       });
