@@ -39,7 +39,6 @@ export class TransactionlistComponent implements OnInit {
       channel.status.subscribe((status) => {
         console.log('---------- New status: ', status);
       });
-      // setTimeout(() => channel.diconnect(), 1300);
       // Subscribe for signing of specific transactions type
       // Or another transactions will be signed automaticaly
       channel.onSign(txTypes).subscribe(({ unpacked, accept, deny, networkId, tag }) => {
@@ -53,11 +52,18 @@ export class TransactionlistComponent implements OnInit {
       // On opened callback
       channel.onOpened(async () => {
         console.log('--------------- Channel Opened On-Chain ---------------');
+
+        // channel.disconnect();
+        // await channel.reconnect();
+
         // Block all channel operations util contract is created
         const contractAddress = await channel.awaitContractCreate();
         console.log('--------------- Contract Deployed ---------------');
+        const BackendSetHash = await channel.awaitContractCall();
+        console.log('--------------- Backend set the hash ---------------');
         // Make a contract call
-        const callRes = await channel.contractCall('player_pick', contractAddress, ['head']);
+        const callRes = await channel.contractCall('player_pick', contractAddress, ['"tail"']);
+        console.log('--------------- Client pick a coin side ---------------');
       });
     }).catch(e => {  console.log(e); });
   }

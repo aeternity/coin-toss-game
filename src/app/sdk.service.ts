@@ -136,15 +136,19 @@ export class ChannelInstance {
     // Register round handler
     // Update round in local storage for each change
     this.$channel.on(ActionTypes.stateChanged, async (newState) => {
-      this.state.next({ state: newState, unpacked: unpackTx(newState) });
-      this.$storage.set('fsmId', this.channel.fsmId());
       this.$storage.set('state', JSON.stringify({ stateTx: newState }));
       this.$storage.set('round', this.channel.round());
+      this.state.next({ state: newState, unpacked: unpackTx(newState) });
     });
     this.$channel.on(ActionTypes.statusChanged, (status) => {
       this.status.next(status);
       this.$storage.set('status', this.channel.status());
-      if (status === 'open') {
+      if (status === 'accepted') {
+        console.log('write fsmId: ' + this.channel.fsmId());
+        this.$storage.set('fsmId', this.channel.fsmId());
+      }
+      if (status === 'signed') {
+        console.log('write channelId: ' + this.channel.id());
         this.$storage.set('channel', JSON.stringify({
           params: this.channelParams,
           id: this.channel.id()
@@ -157,7 +161,7 @@ export class ChannelInstance {
 
   async reconnect() {
     const existingFsmId = this.$storage.get('fsmId');
-    const existingChannelId = this.$storage.get('channel').id;
+    const existingChannelId = JSON.parse(this.$storage.get('channel')).id;
     const offchainTx = JSON.parse(this.$storage.get('state')).stateTx;
     this.$channel = await Channel({
       ...this.channelParams,
@@ -204,6 +208,33 @@ export class ChannelInstance {
       });
       this.actionBlocked = 'Waiting for contract create.';
     });
+  }
+
+  async awaitContractCall() {
+    return new Promise(resolve => {
+      const subscription = this.state.subscribe(async ({ unpacked }) => {
+        if (unpacked.tx.encodedTx.txType === 'channelOffChain'
+          && unpacked.tx.encodedTx.tx.updates[0]
+          && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCallContract'
+        ) {
+          subscription.unsubscribe();
+          const round = unpacked.tx.encodedTx.tx.round;
+          const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
+          const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
+          this.actionBlocked = false;
+          debugger
+          // const callRes = await this.channel.getContractCall({ caller, contract, round });
+          // debugger
+          // const decoded = await this.decodeCallData(callRes.returnValue);
+          resolve();
+        }
+      });
+      this.actionBlocked = 'Waiting for contract create.';
+    });
+  }
+
+  async decodeCallData(callData: string) {
+    return this.$initiatorAccount.contractDecodeCallDataByCodeAPI(await this.$initiatorAccount.compileContractAPI(CONTRACT), callData);
   }
 
   async signTx(tag, tx) {
@@ -309,7 +340,15 @@ export class ChannelInstance {
       aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
     );
     console.log(callData);
-    return await this.channel.callContract({ amount, callData, contract: contractAddress, abiVersion: 1 });
+    const callRes =  await this.channel.callContract(
+      { amount, callData, contract: contractAddress, abiVersion: 3 },
+        tx => this.signTx('contract_call', tx)
+    );
+    debugger
+    if (!callRes.accepted) {
+      throw new Error(`Contract call error: ${callRes}`);
+    }
+    return callRes;
   }
 
 }

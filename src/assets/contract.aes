@@ -1,83 +1,100 @@
-//  the tic-tac-toe game
-include "List.aes"
+contract CoinToss =
+  record state = { casino          : address,
+                   player          : address,
+                   hash            : option(hash),
+                   height          : int,
+                   player_pick     : option(string),
+                   player_stake    : int,
+                   reaction_time   : int
+                   }
 
-contract TicTacToe =
+  entrypoint init(casino: address, player: address, reaction_time: int) : state =
+    { casino          = casino,
+      player          = player,
+      hash            = None,
+      height          = 0,
+      player_pick     = None,
+      player_stake    = 0,
+      reaction_time   = reaction_time
+      }
 
-  record state = { player : address,
-                   price_sum : int,
-                   deadline : int,
-                   next : address,   // first one doign a move starts, agreed in channel (otherwise not signed)
-                   board : map(int * int, option(address)) }
+  payable stateful entrypoint provide_hash(hash: hash) =
+    require_casino()
+    require(state.hash == None, "already_has_hash")
+    put(state{ hash = Some(hash),
+               height = Chain.block_height})
 
-  entrypoint init() : state =
-    { player = Contract.creator,
-      price_sum = Contract.balance,
-      deadline = 0,
-      next = Contract.creator,
-      board = {[(0,0)] = None, [(0,1)] = None, [(0,2)] = None,
-               [(1,0)] = None, [(1,1)] = None, [(1,2)] = None,
-               [(2,0)] = None, [(2,1)] = None, [(2,2)] = None} }
+  stateful entrypoint withdraw(amount: int) =
+    require_casino()
+    require(state.hash == None, "already_playing")
+    Chain.spend(state.casino, amount)
 
-  // check in state channel whether you want to sign for this call value
-  // in channel check whether you accept the joiner to start or follow
-  stateful payable entrypoint join(start : bool) =
-    require( state.player == state.next, "already 2 players")
-    require( state.price_sum > 0, "no price")
-    require( state.player != Call.caller, "It's a 2 player game")
-    require( Call.value == state.price_sum, String.concat("To play you need to pay: ", Int.to_str(state.price_sum)))
-    switch(start)
-        true =>
-           put( state{ player = Call.caller,
-                       deadline = Chain.block_height + 2,
-                       price_sum = state.price_sum + Call.value } )
-        false =>
-           put( state{ next = Call.caller,
-                       deadline = Chain.block_height + 3,  // one extra block if other party starts
-                       price_sum = state.price_sum + Call.value } )
+  payable entrypoint deposit() =
+    require_casino()
 
-  stateful entrypoint move(row : int, column : int) =
-    require( state.player != state.next, "only one player")
-    // require( state.player == Call.caller || state.deadline < Chain.block_height, "not your turn")
-    require( state.player == Call.caller, "not your turn")
-    require( state.price_sum > 0, "no price")
-    require( 0 =< row && row =< 3, "only 3 rows")
-    require( 0 =< column && column =< 3, "only 3 columns")
-    // if(state.deadline < Chain.block_height)
-    if(false)
-       Chain.spend(state.next, state.price_sum)
-       put(state{ price_sum = 0 })
-       true
-    else
-      require( state.board[(row, column)] == None, "already taken")
-      put(state{ next = state.player,
-                 player = state.next,
-                 deadline = Chain.block_height + 2,
-                 board = state.board{[(row, column)] = Some(Call.caller)} })
-      switch(check_winning())
-        None => false
-        Some(winner) =>
-           Chain.spend(winner, state.price_sum)
-           put(state{ price_sum = 0 })
-           true
+  stateful payable entrypoint player_pick(coin_side: string) =
+    require_player()
+    ensure_player_turn_to_pick()
+    ensure_coin_side(coin_side)
+    require(Call.value * 2 =< Contract.balance, "stake_too_big")
+    put(state{ player_pick  = Some(coin_side),
+               height       = Chain.block_height,
+               player_stake = Call.value})
 
+  stateful entrypoint reveal(key: string, coin_side: string) =
+    require_casino()
+    ensure_casino_turn_to_reveal()
+    ensure_coin_side(coin_side)
+    ensure_if_key_is_valid(key, coin_side)
+    let Some(player_pick) = state.player_pick
+    if (coin_side == player_pick)
+      Chain.spend(state.player, state.player_stake * 2)
+    reset_state()
 
-  function check_winning() : option(address) =
-    if(won(state.board[(0,0)], state.board[(0,1)], state.board[(0,2)]) ||
-       won(state.board[(0,0)], state.board[(1,1)], state.board[(2,2)]) ||
-       won(state.board[(0,0)], state.board[(1,0)], state.board[(2,0)]))
-      state.board[(0,0)]
-    elif(won(state.board[(1,1)], state.board[(0,1)], state.board[(2,1)]) ||
-         won(state.board[(1,1)], state.board[(1,0)], state.board[(1,2)]) ||
-         won(state.board[(1,1)], state.board[(0,2)], state.board[(2,0)]))
-      state.board[(1,1)]
-    elif(won(state.board[(2,2)], state.board[(0,2)], state.board[(1,2)]) ||
-         won(state.board[(2,2)], state.board[(2,0)], state.board[(2,1)]))
-      state.board[(2,2)]
-    else
-      None
+  stateful entrypoint player_dispute_no_reveal() =
+    require_player()
+    ensure_casino_turn_to_reveal()
+    require(state.height  + state.reaction_time < Chain.block_height, "not_yet_allowed")
+    Chain.spend(state.player, state.player_stake * 2)
+    reset_state()
 
-  function won(a, b, c) =
-     a != None && a == b && a ==c
+  stateful entrypoint casino_dispute_no_pick() =
+    require_casino()
+    ensure_player_turn_to_pick()
+    require(state.height + state.reaction_time < Chain.block_height, "not_yet_allowed")
+    reset_state()
 
-  entrypoint get_state() =
-    state
+  // a friendly helper function
+  entrypoint compute_hash(key: string, coin_side: string) : hash =
+    ensure_coin_side(coin_side)
+    String.sha256(String.concat(key, coin_side))
+
+  // internal functions
+
+  function ensure_coin_side(coin_side: string) =
+    require(coin_side == "heads" || coin_side == "tails", "invalid_coin_side")
+
+  function ensure_player_turn_to_pick() =
+    require(state.hash != None, "no_hash")
+    require(state.player_pick == None, "there_is_a_pick_already")
+
+  function ensure_casino_turn_to_reveal() =
+    require(state.player_pick != None, "there_is_no_pick")
+
+  function require_player() =
+    require(Call.caller == state.player, "not_player")
+
+  function require_casino() =
+    require(Call.caller == state.casino, "not_casino")
+
+  function ensure_if_key_is_valid(key: string, coin_side: string) =
+    let computed_hash = compute_hash(key, coin_side)
+    let Some(stored_hash) = state.hash
+    require(stored_hash == computed_hash, "invalid_key_and_answer")
+
+  stateful function reset_state() =
+    put(state{hash            = None,
+              height          = 0,
+              player_pick     = None,
+              player_stake    = 0
+              })
