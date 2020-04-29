@@ -41,11 +41,11 @@ export class TransactionlistComponent implements OnInit {
       });
       // Subscribe for signing of specific transactions type
       // Or another transactions will be signed automaticaly
-      channel.onSign(txTypes).subscribe(({ unpacked, accept, deny, networkId, tag }) => {
+      channel.onSign(txTypes).subscribe(({ unpacked, tx, accept, deny, networkId, tag, decodedCallData }) => {
         console.log('---------- Channel signing -----------');
-        console.log('Channel sign networkId: ' + networkId);
-        console.log('Channel sign tag -> ' + tag);
+        // console.log('Channel sign tag -> ' + tag);
         console.log('Channel sign transaction: ', unpacked);
+        // console.log('Decoded call data:  ', decodedCallData);
         console.log('---------------------------------------');
         accept();
       });
@@ -60,7 +60,7 @@ export class TransactionlistComponent implements OnInit {
         const contractAddress = await channel.awaitContractCreate();
         console.log('--------------- Contract Deployed ---------------');
         const BackendSetHash = await channel.awaitContractCall('provide_hash');
-        console.log('--------------- Backend set the hash ---------------');
+        console.log('--------------- Backend set the hash ---------------', BackendSetHash);
         // Make a contract call (provide a coin side)
         const callRes = await channel.contractCall('player_pick', contractAddress, ['"tails"']);
         console.log('--------------- Client pick a coin side ---------------', callRes);

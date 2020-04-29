@@ -101,19 +101,21 @@ export class ChannelInstance {
   // Deps
   private readonly $storage;
   private $code: string;
+  readonly bytecode: string;
+
   // State
   private $channel;
   private $initiatorAccount;
   private $onSign = new Subject();
   onChainTx = new BehaviorSubject(null);
   error = new BehaviorSubject(null);
-  state = new BehaviorSubject({ state: null, unpacked: null });
+  state = new BehaviorSubject({ state: null, unpacked: null, contractCallInfo: null });
   status = new BehaviorSubject(null);
-  bytecode;
   channelParams;
   networkId: string;
   opened;
   actionBlocked: any = false;
+  updates = new Map();
 
   constructor(params, account, { networkId = 'ae_channel_service_test', code = '', storage = {}, bytecode = '' } = {}) {
     this.$code = code;
@@ -144,17 +146,20 @@ export class ChannelInstance {
     this.$channel.on(ActionTypes.stateChanged, async (newState) => {
       this.$storage.set('state', JSON.stringify({ stateTx: newState }));
       this.$storage.set('round', this.channel.round());
-      this.state.next({ state: newState, unpacked: unpackTx(newState) });
+      const unpacked = unpackTx(newState);
+      const round = unpacked.tx.encodedTx.tx.round;
+      const contractCallInfo = this.updates.has(round) ? this.updates.get(round) : {};
+      this.state.next({ contractCallInfo, state: newState, unpacked });
     });
     this.$channel.on(ActionTypes.statusChanged, (status) => {
       this.status.next(status);
       this.$storage.set('status', this.channel.status());
       if (status === 'accepted') {
-        console.log('write fsmId: ' + this.channel.fsmId());
+        // console.log('write fsmId: ' + this.channel.fsmId());
         this.$storage.set('fsmId', this.channel.fsmId());
       }
       if (status === 'signed') {
-        console.log('write channelId: ' + this.channel.id());
+        // console.log('write channelId: ' + this.channel.id());
         this.$storage.set('channel', JSON.stringify({
           params: this.channelParams,
           id: this.channel.id()
@@ -184,14 +189,14 @@ export class ChannelInstance {
     this.$channel = await Channel({
       ...this.channelParams,
       sign: this.signTx.bind(this),
-      debug: true // log WebSocket messages
+      debug: false // log WebSocket messages
     });
     this.registerHandlers();
   }
 
   disconnect() {
     this.channel.disconnect();
-    this.state.next({ state: null, unpacked: null }) ;
+    this.state.next({ state: null, unpacked: null, contractCallInfo: null }) ;
     this.state.next(null);
   }
 
@@ -216,17 +221,19 @@ export class ChannelInstance {
     });
   }
 
-  async unpackAndDecodeContractCallTx(unpacked, fnName) {
-    const round = unpacked.tx.encodedTx.tx.round;
-    const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
-    const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
-    this.actionBlocked = false;
-    // TODO decode call data to know what FN is called
-    // debugger
-    // const decodedCallData = await this.decodeCallData(fnName, unpacked.tx.encodedTx.tx.updates[0].tx.callData);
-    // debugger
-    const callRes = await this.channel.getContractCall({ caller, contract, round });
-    return await this.decodeCallResult(fnName, callRes.returnValue, callRes.returnType);
+  async unpackContractCall(unpacked, options) {
+    if (!options || !options.updates || !options.updates.length) {
+      return {};
+    }
+    const [update] = options.updates;
+    const operation = update.op;
+    if (operation !== 'OffChainCallContract') {
+      return {};
+    }
+    const round = unpacked.tx.round;
+    const callData = update.call_data;
+    const decodedCallData = await this.decodeCallData(callData);
+    return { round, decoded: decodedCallData };
   }
 
   async awaitContractCall(fnName) {
@@ -237,13 +244,13 @@ export class ChannelInstance {
             && unpacked.tx.encodedTx.tx.updates[0]
             && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCallContract'
           ) {
-            const decodedResult = await this.unpackAndDecodeContractCallTx(unpacked, fnName);
+            const decodedResult = {};
             this.actionBlocked = false;
-            subscription.unsubscribe();
+            setTimeout(() => subscription.unsubscribe(), 0);
             resolve(decodedResult);
           }
         });
-        this.actionBlocked = 'Waiting for contract create.';
+        this.actionBlocked = 'Waiting for contract call.';
       } catch (e) {
         reject(e);
       }
@@ -254,12 +261,16 @@ export class ChannelInstance {
     return this.$initiatorAccount.contractDecodeCallResultAPI(this.$code, fnName, callValue, callResult);
   }
 
-  async decodeCallData(fnName: string, callData: string) {
-    return this.$initiatorAccount.contractDecodeCallDataBySourceAPI(this.$code, fnName, callData);
+  async decodeCallData(callData: string) {
+    return this.$initiatorAccount.contractDecodeCallDataByCodeAPI(this.bytecode, callData);
   }
 
-  async signTx(tag, tx) {
+  async signTx(tag, tx, options?: object) {
     const unpacked = unpackTx(tx);
+    const decodedCallData = await this.unpackContractCall(unpacked, options);
+    if (decodedCallData.round) {
+      this.updates.set(decodedCallData.round, decodedCallData.decoded);
+    }
     return new Promise(async (resolve, reject) => {
       if (!this.$onSign.observers.length) {
         resolve(await this.$initiatorAccount.signTransaction(tx, { networkId: this.networkId }));
@@ -269,6 +280,7 @@ export class ChannelInstance {
         tag,
         unpacked,
         tx,
+        decodedCallData,
         accept: async () => resolve(await this.$initiatorAccount.signTransaction(tx, { networkId: this.networkId })),
         deny: () => reject(false)
       });
@@ -373,7 +385,7 @@ export class ChannelInstance {
     const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
     const callRes = await this.channel.getContractCall({ caller, contract, round });
     const decoded = await this.decodeCallResult(fn, callRes.returnValue, callRes.returnType);
-
+    this.updates.set(round, { function: fn, arguments: args, decodedResult: decoded });
     if (callRes.returnType !== 'ok') {
       throw Object.assign(decoded, new Error(`Contract call ${fn} is aborted`));
     }
