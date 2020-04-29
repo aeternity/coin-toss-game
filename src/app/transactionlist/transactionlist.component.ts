@@ -64,7 +64,6 @@ export class TransactionlistComponent implements OnInit {
         // Make a contract call (provide a coin side)
         const callRes = await channel.contractCall('player_pick', contractAddress, ['"tails"']);
         console.log('--------------- Client pick a coin side ---------------');
-        console.log(`call decoded res -> `, callRes);
         // Wait of `reveal`
         const RevealByBackend = await channel.awaitContractCall('reveal');
         // Wait of `drain`

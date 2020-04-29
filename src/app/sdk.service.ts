@@ -224,7 +224,7 @@ export class ChannelInstance {
             && unpacked.tx.encodedTx.tx.updates[0]
             && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCallContract'
           ) {
-            subscription.unsubscribe();
+            setTimeout(() => subscription.unsubscribe(), 1000)
             const round = unpacked.tx.encodedTx.tx.round;
             const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
             const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
@@ -366,10 +366,11 @@ export class ChannelInstance {
     const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
     const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
     const callRes = await this.channel.getContractCall({ caller, contract, round });
-    // debugger
-    // if (callRes !== 'ok') throw new Error('abort')
     const decoded = await this.decodeCallResult(fn, callRes.returnValue, callRes.returnType);
-    // debugger
+
+    if (callRes.returnType !== 'ok') {
+      throw Object.assign(decoded, new Error(`Contract call ${fn} is aborted`));
+    }
     return { ...callRes, decoded };
   }
 
