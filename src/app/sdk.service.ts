@@ -358,8 +358,9 @@ export class ChannelInstance {
     if (this.actionBlocked) {
       throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
     }
-    // this.channel.disconnect();
-    return this.channel.shutdown((tx, options) => this.signTx('shutdown_tx', tx, options));
+    const res = await this.channel.shutdown((tx, options) => this.signTx('shutdown_tx', tx, options));
+    this.channel.disconnect();
+    return res;
   }
 
   async contractCall(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {
