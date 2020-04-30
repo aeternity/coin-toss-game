@@ -109,7 +109,7 @@ export class ChannelInstance {
   private $onSign = new Subject();
   onChainTx = new BehaviorSubject(null);
   error = new BehaviorSubject(null);
-  state = new BehaviorSubject({ state: null, unpacked: null, contractCallInfo: null });
+  state = new Subject();
   status = new BehaviorSubject(null);
   channelParams;
   networkId: string;
@@ -148,18 +148,25 @@ export class ChannelInstance {
       this.$storage.set('round', this.channel.round());
       const unpacked = unpackTx(newState);
       const round = unpacked.tx.encodedTx.tx.round;
-      const contractCallInfo = this.updates.has(round) ? this.updates.get(round) : {};
-      this.state.next({ contractCallInfo, state: newState, unpacked });
+      const updates = this.updates.has(round) ? this.updates.get(round) : {};
+      if (updates && updates.operation === 'OffChainCallContract') {
+        const callRes = await this.channel.getContractCall({
+          caller: updates.update.caller_id,
+          contract: updates.update.contract_id,
+          round
+        });
+        const decodedResult = await this.decodeCallResult(updates.decoded.function, callRes.returnValue, callRes.returnType);
+        this.updates.set(round, { ...updates, decodedResult, callInfo: callRes });
+      }
+      this.state.next({ updates: this.updates.get(round), state: newState, unpacked });
     });
     this.$channel.on(ActionTypes.statusChanged, (status) => {
       this.status.next(status);
       this.$storage.set('status', this.channel.status());
       if (status === 'accepted') {
-        // console.log('write fsmId: ' + this.channel.fsmId());
         this.$storage.set('fsmId', this.channel.fsmId());
       }
       if (status === 'signed') {
-        // console.log('write channelId: ' + this.channel.id());
         this.$storage.set('channel', JSON.stringify({
           params: this.channelParams,
           id: this.channel.id()
@@ -205,14 +212,11 @@ export class ChannelInstance {
    */
   async awaitContractCreate() {
     return new Promise(resolve => {
-      const subscription = this.state.subscribe(({ unpacked }) => {
-        if (unpacked.tx.encodedTx.txType === 'channelOffChain'
-          && unpacked.tx.encodedTx.tx.updates[0]
-          && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCreateContract'
-        ) {
-          subscription.unsubscribe();
+      const subscription = this.state.subscribe(({ unpacked, updates }) => {
+        if (updates.operation && updates.operation === 'OffChainNewContract') {
+          setTimeout(() => subscription.unsubscribe(), 0);
           const round = unpacked.tx.encodedTx.tx.round;
-          const owner = unpacked.tx.encodedTx.tx.updates[0].tx.owner;
+          const owner = updates.update.owner;
           this.actionBlocked = false;
           resolve(buildContractId(owner, round));
         }
@@ -221,33 +225,29 @@ export class ChannelInstance {
     });
   }
 
-  async unpackContractCall(unpacked, options) {
+  async unpackContractUpdates(unpacked, options) {
     if (!options || !options.updates || !options.updates.length) {
       return {};
     }
     const [update] = options.updates;
     const operation = update.op;
-    if (operation !== 'OffChainCallContract') {
+    if (!['OffChainNewContract', 'OffChainCallContract'].includes(operation)) {
       return {};
     }
     const round = unpacked.tx.round;
     const callData = update.call_data;
     const decodedCallData = await this.decodeCallData(callData);
-    return { round, decoded: decodedCallData };
+    return { round, decoded: decodedCallData, operation, update };
   }
 
   async awaitContractCall(fnName) {
     return new Promise((resolve, reject) => {
       try {
-        const subscription = this.state.subscribe(async ({ unpacked }) => {
-          if (unpacked.tx.encodedTx.txType === 'channelOffChain'
-            && unpacked.tx.encodedTx.tx.updates[0]
-            && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCallContract'
-          ) {
-            const decodedResult = {};
+        const subscription = this.state.subscribe(async ({ unpacked, updates }) => {
+          if (updates.operation && updates.operation === 'OffChainCallContract' && updates.decoded.function === fnName) {
             this.actionBlocked = false;
             setTimeout(() => subscription.unsubscribe(), 0);
-            resolve(decodedResult);
+            resolve(updates);
           }
         });
         this.actionBlocked = 'Waiting for contract call.';
@@ -267,9 +267,9 @@ export class ChannelInstance {
 
   async signTx(tag, tx, options?: object) {
     const unpacked = unpackTx(tx);
-    const decodedCallData = await this.unpackContractCall(unpacked, options);
-    if (decodedCallData.round) {
-      this.updates.set(decodedCallData.round, decodedCallData.decoded);
+    const updates = await this.unpackContractUpdates(unpacked, options);
+    if (updates.round) {
+      this.updates.set(updates.round, updates);
     }
     return new Promise(async (resolve, reject) => {
       if (!this.$onSign.observers.length) {
@@ -280,7 +280,7 @@ export class ChannelInstance {
         tag,
         unpacked,
         tx,
-        decodedCallData,
+        updates,
         accept: async () => resolve(await this.$initiatorAccount.signTransaction(tx, { networkId: this.networkId })),
         deny: () => reject(false)
       });
@@ -351,15 +351,15 @@ export class ChannelInstance {
     if (this.actionBlocked) {
       throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
     }
-    return await this.channel.withdrawal(amount, tx => this.signTx('withdrawal_tx', tx));
+    return await this.channel.withdrawal(amount, (tx, options) => this.signTx('withdrawal_tx', tx, options));
   }
 
   async closeChannel() {
     if (this.actionBlocked) {
       throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
     }
-    this.channel.disconnect();
-    return this.channel.shutdown(tx => this.signTx('shutdown_tx', tx));
+    // this.channel.disconnect();
+    return this.channel.shutdown((tx, options) => this.signTx('shutdown_tx', tx, options));
   }
 
   async contractCall(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {
@@ -372,24 +372,23 @@ export class ChannelInstance {
       fn,
       aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
     );
-    const res =  await this.channel.callContract(
-      { amount, callData, contract: contractAddress, abiVersion: 3 },
-        tx => this.signTx('contract_call', tx)
+    const res = await this.channel.callContract(
+      {amount, callData, contract: contractAddress, abiVersion: 3},
+      (tx, options) => this.signTx('contract_call', tx, options)
     );
     if (!res.accepted) {
       throw new Error(`Contract call error: ${res}`);
     }
     const unpacked = unpackTx(res.signedTx);
     const round = unpacked.tx.encodedTx.tx.round;
-    const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
-    const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
-    const callRes = await this.channel.getContractCall({ caller, contract, round });
-    const decoded = await this.decodeCallResult(fn, callRes.returnValue, callRes.returnType);
-    this.updates.set(round, { function: fn, arguments: args, decodedResult: decoded });
+    const updates = this.updates.get(round);
+    const callRes = await this.channel.getContractCall({ caller: updates.update.caller_id, contract: updates.update.contract_id, round });
+    const decodedResult = await this.decodeCallResult(updates.decoded.function, callRes.returnValue, callRes.returnType);
+    this.updates.set(round, { ...updates, decodedResult, callInfo: callRes });
     if (callRes.returnType !== 'ok') {
-      throw Object.assign(decoded, new Error(`Contract call ${fn} is aborted`));
+      throw Object.assign(decodedResult, new Error(`Contract call ${fn} is aborted`));
     }
-    return { ...callRes, decoded };
+    return this.updates.get(round);
   }
 
 }
