@@ -7,7 +7,7 @@ export const environment = {
   SC_NODE_URL: 'ws://localhost:3014/channel',
   BACKEND_SERVICE_URL: 'http://localhost:4000',
   NODE_URL: 'http://localhost:3013',
-  COMPILER_URL: 'http://localhost:3080'
+  COMPILER_URL: 'https://latest.compiler.aepps.com'
 };
 
 /*
