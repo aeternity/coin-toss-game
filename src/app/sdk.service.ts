@@ -50,8 +50,8 @@ export class SdkService {
   constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {
 
     // storage example:
-    this.storage.set("key", "value");
-    this.storage.get("key"); // => "value"
+    // this.storage.set("key", "value");
+    // this.storage.get("key"); // => "value"
   }
 
   get channel() {
@@ -60,7 +60,7 @@ export class SdkService {
 
   async getContractCode() {
     return this.http
-      .get(`assets/coin_toss.aes`, {responseType: 'text'})
+      .get(`app/assets/contract.aes`, {responseType: 'text'})
       .toPromise();
   }
 
@@ -87,9 +87,9 @@ export class SdkService {
       channelConfig,
       this.$sdkInstance,
       {
-        code: await this.getContractCode(),
+        code: CONTRACT,
         storage: this.storage,
-        bytecode: await this.$sdkInstance.compileContractAPI(await this.getContractCode())
+        bytecode: await this.$sdkInstance.compileContractAPI(CONTRACT)
       }
     );
     await this.channel.openChannel();
@@ -111,7 +111,6 @@ export class ChannelInstance {
   error = new BehaviorSubject(null);
   state = new Subject();
   status = new BehaviorSubject(null);
-  private http: HttpClient;
   channelParams;
   networkId: string;
   opened;
@@ -125,8 +124,6 @@ export class ChannelInstance {
     this.channelParams = params;
     this.networkId = networkId;
     this.$storage = storage;
-    this.channelParams = params;
-
   }
 
   set code(code: string) {
@@ -312,21 +309,6 @@ export class ChannelInstance {
     });
   }
 
-  async getContractCode() {
-    return this.http
-      .get(`app/assets/contract.aes`, {responseType: 'text'})
-      .toPromise();
-  }
-
-  async doContractCall(contractAddress: string, side: string, amount: number) {
-    if (!this.channel) {
-      throw new Error('Channel create process is npt started. Please run `openChannel()`');
-    }
-    const contractSource = await this.getContractCode();
-    const callData = await this.$initiatorAccount.contractEncodeCallDataAPI(contractSource, 'bet', [side], {backend: 'aevm'})
-    await this.channel.callContract({amount: amount, callData, contract: contractAddress, abiVersion: 1})
-  }
-
   /**
    * Register event listener function
    *
@@ -387,7 +369,7 @@ export class ChannelInstance {
     }
 
     const callData = await this.$initiatorAccount.contractEncodeCallDataAPI(
-      await this.getContractCode().catch(e => null),
+      CONTRACT,
       fn,
       aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
     );
@@ -409,4 +391,113 @@ export class ChannelInstance {
     }
     return this.updates.get(round);
   }
+
 }
+
+const CONTRACT = `// orignal contract location is at
+// https://github.com/aeternity/aeternity/blob/f3ad49602cc9e52dbaf8941b1f6304f232e8e994/test/contracts/coin_toss.aes
+contract CoinToss =
+  record state = { casino          : address,
+                   player          : address,
+                   hash            : option(hash),
+                   height          : int,
+                   player_pick     : option(string),
+                   player_stake    : int,
+                   reaction_time   : int
+                   }
+
+  entrypoint init(casino: address, player: address, reaction_time: int) : state =
+    { casino          = casino,
+      player          = player,
+      hash            = None,
+      height          = 0,
+      player_pick     = None,
+      player_stake    = 0,
+      reaction_time   = reaction_time
+      }
+
+  payable stateful entrypoint provide_hash(hash: hash) =
+    require_casino()
+    require(state.hash == None, "already_has_hash")
+    put(state{ hash = Some(hash),
+               height = Chain.block_height})
+
+  stateful entrypoint withdraw(amount: int) =
+    require_casino()
+    require(state.hash == None, "already_playing")
+    Chain.spend(state.casino, amount)
+
+  stateful entrypoint drain() =
+    require_casino()
+    require(state.hash == None, "already_playing")
+    Chain.spend(state.casino, Contract.balance)
+
+  payable entrypoint deposit() =
+    require_casino()
+
+  stateful payable entrypoint player_pick(coin_side: string) =
+    require_player()
+    ensure_player_turn_to_pick()
+    ensure_coin_side(coin_side)
+    require(Call.value * 2 =< Contract.balance, "stake_too_big")
+    put(state{ player_pick  = Some(coin_side),
+               height       = Chain.block_height,
+               player_stake = Call.value})
+
+  stateful entrypoint reveal(key: string, coin_side: string) =
+    require_casino()
+    ensure_casino_turn_to_reveal()
+    ensure_coin_side(coin_side)
+    ensure_if_key_is_valid(key, coin_side)
+    let Some(player_pick) = state.player_pick
+    if (coin_side == player_pick)
+      Chain.spend(state.player, state.player_stake * 2)
+    reset_state()
+
+  stateful entrypoint player_dispute_no_reveal() =
+    require_player()
+    ensure_casino_turn_to_reveal()
+    require(state.height  + state.reaction_time < Chain.block_height, "not_yet_allowed")
+    Chain.spend(state.player, state.player_stake * 2)
+    reset_state()
+
+  stateful entrypoint casino_dispute_no_pick() =
+    require_casino()
+    ensure_player_turn_to_pick()
+    require(state.height + state.reaction_time < Chain.block_height, "not_yet_allowed")
+    reset_state()
+
+  // a friendly helper function
+  entrypoint compute_hash(key: string, coin_side: string) : hash =
+    ensure_coin_side(coin_side)
+    String.sha256(String.concat(key, coin_side))
+
+  // internal functions
+
+  function ensure_coin_side(coin_side: string) =
+    require(coin_side == "heads" || coin_side == "tails", "invalid_coin_side")
+
+  function ensure_player_turn_to_pick() =
+    require(state.hash != None, "no_hash")
+    require(state.player_pick == None, "there_is_a_pick_already")
+
+  function ensure_casino_turn_to_reveal() =
+    require(state.player_pick != None, "there_is_no_pick")
+
+  function require_player() =
+    require(Call.caller == state.player, "not_player")
+
+  function require_casino() =
+    require(Call.caller == state.casino, "not_casino")
+
+  function ensure_if_key_is_valid(key: string, coin_side: string) =
+    let computed_hash = compute_hash(key, coin_side)
+    let Some(stored_hash) = state.hash
+    require(stored_hash == computed_hash, "invalid_key_and_answer")
+
+  stateful function reset_state() =
+    put(state{hash            = None,
+              height          = 0,
+              player_pick     = None,
+              player_stake    = 0
+              })`;
