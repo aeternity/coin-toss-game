@@ -5,16 +5,18 @@
       Creating channel...
     </div>
     <div *ngSwitchCase="stateEnum.channelCreated">
-      ✔️ Channel Created.
+      ✔️ Channel Created. <br />
       Creating contract...
     </div>
     <div *ngSwitchCase="stateEnum.contractCreated">
-      Ready to toss. Guess an outcome:
-      <button (click)="setGuess('heads')">Heads</button>
-      <button (click)="setGuess('heads')">Tails</button>
+      ✔️ Channel Created. <br />
+      ✔️ Contract Created. <br />
+      Inserting Hash...
     </div>
     <div *ngSwitchCase="stateEnum.hashInserted">
-      Ready for your guess :)
+      Ready to toss. Guess an outcome:
+      <button (click)="setGuess('heads')">Heads</button>
+      <button (click)="setGuess('tails')">Tails</button>
     </div>
     <div *ngSwitchCase="stateEnum.error">
       Ups we encountered an error. Please reload :)

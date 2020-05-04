@@ -60,7 +60,7 @@ export class SdkService {
 
   async getContractCode() {
     return this.http
-      .get(`app/assets/coin_toss.aes`, {responseType: 'text'})
+      .get(`assets/coin_toss.aes`, {responseType: 'text'})
       .toPromise();
   }
 
@@ -87,9 +87,9 @@ export class SdkService {
       channelConfig,
       this.$sdkInstance,
       {
-        code: await this.getContractCode().catch(e => null),
+        code: await this.getContractCode(),
         storage: this.storage,
-        bytecode: await this.$sdkInstance.compileContractAPI(CONTRACT)
+        bytecode: await this.$sdkInstance.compileContractAPI(await this.getContractCode())
       }
     );
     await this.channel.openChannel();
