@@ -5,12 +5,12 @@
       Creating channel...
     </div>
     <div *ngSwitchCase="stateEnum.channelCreated">
-      ✔️ Channel Created. <br />
+      ✔️ Channel Created. <br/>
       Creating contract...
     </div>
     <div *ngSwitchCase="stateEnum.contractCreated">
-      ✔️ Channel Created. <br />
-      ✔️ Contract Created. <br />
+      ✔️ Channel Created. <br/>
+      ✔️ Contract Created. <br/>
       Inserting Hash...
     </div>
     <div *ngSwitchCase="stateEnum.hashInserted">
@@ -21,8 +21,11 @@
     <div *ngSwitchCase="stateEnum.error">
       Ups we encountered an error. Please reload :)
     </div>
-    <div *ngSwitchCase="stateEnum.ready">
-      Press the button to start the game
-      <button>Start</button>
+    <div *ngSwitchCase="stateEnum.won">
+      You won! :)
     </div>
+    <div *ngSwitchCase="stateEnum.lost">
+      You lost! :( (Tip, try "Heads" next time)
+    </div>
+  </div>
 </div>

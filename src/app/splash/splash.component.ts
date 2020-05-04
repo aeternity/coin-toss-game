@@ -7,6 +7,8 @@ enum State {
   contractCreated = 'contractCreated',
   hashInserted = 'hashInserted',
   bidPlaced = 'bidPlaced',
+  won = 'won',
+  lost = 'lost',
   error = 'error',
   ready = 'ready',
   running = 'running',
@@ -23,6 +25,7 @@ export class SplashComponent implements OnInit {
   private state: State;
   stateEnum: typeof State = State;
   private contractAddress;
+  private guess;
 
   constructor(private sdkService: SdkService, private changeDetectorRef: ChangeDetectorRef) {
     this.state = State.initial;
@@ -36,6 +39,7 @@ export class SplashComponent implements OnInit {
   async setGuess(guess: string) {
     try {
       console.log(guess);
+      this.guess = guess;
       const callRes = await this.sdkService.channel.contractCall('player_pick', this.contractAddress, [`"${guess}"`], {amount: 10});
       this.updateState(State.bidPlaced);
     } catch (err) {
@@ -81,8 +85,8 @@ export class SplashComponent implements OnInit {
         // await channel.reconnect();
 
         // Block all channel operations util contract is created
-        const contractAddress = await channel.awaitContractCreate();
-        console.log('--------------- Contract Deployed ---------------', contractAddress);
+        this.contractAddress = await channel.awaitContractCreate();
+        console.log('--------------- Contract Deployed ---------------', this.contractAddress);
         this.updateState(State.contractCreated)
 
         const BackendSetHash = await channel.awaitContractCall('provide_hash');
@@ -92,6 +96,8 @@ export class SplashComponent implements OnInit {
         // Wait of `reveal`
         const RevealByBackend = await channel.awaitContractCall('reveal');
         console.log('--------------- Backend call reveal ---------------', RevealByBackend);
+        if(RevealByBackend.decoded.arguments[1].value === this.guess) this.updateState(State.won)
+        else this.updateState(State.lost)
 
         const shutdown = await channel.closeChannel();
         console.log('--------------- Channel shutdown complete ---------------', shutdown);
