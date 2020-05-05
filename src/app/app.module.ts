@@ -12,6 +12,8 @@ import { OneIncomingTransactionComponent } from './one-incoming-transaction/one-
 import { OneUpdateComponent } from './one-update/one-update.component';
 import { SdkService } from './sdk.service';
 import { SplashComponent } from './splash/splash.component';
+import { CoinflipperComponent } from './coinflipper/coinflipper.component';
+import { AeButtonComponent } from './ae-button/ae-button.component';
 
 @NgModule({
   declarations: [
@@ -21,7 +23,9 @@ import { SplashComponent } from './splash/splash.component';
     ReversePipe,
     OneIncomingTransactionComponent,
     OneUpdateComponent,
-    SplashComponent
+    SplashComponent,
+    CoinflipperComponent,
+    AeButtonComponent
   ],
   imports: [
     BrowserModule,
