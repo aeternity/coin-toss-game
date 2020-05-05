@@ -22,7 +22,7 @@ enum State {
 })
 export class SplashComponent implements OnInit {
 
-  private state: State;
+  state: State;
   stateEnum: typeof State = State;
   private contractAddress;
   private guess;
