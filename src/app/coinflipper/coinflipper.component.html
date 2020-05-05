@@ -5,4 +5,9 @@
     <div class="side-b"></div>
 </div>
 
-<app-ae-button></app-ae-button>
+<div><p *ngIf="coinsideThrowReveal" class="label">You flipped {{coinsideThrowReveal}} !</p></div>
+<app-ae-button 
+    [label]="buttonLabels[state]"
+    [pressed]="isPressed"
+    (click)="flipcoin()"
+></app-ae-button>

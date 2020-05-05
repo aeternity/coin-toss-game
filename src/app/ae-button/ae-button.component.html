@@ -1,20 +1,23 @@
-<div id="mockup_DIV_7">
-	<div id="mockup_DIV_8">
-		<main id="mockup_MAIN_9">
-			<div id="mockup_DIV_10">
-				<section id="mockup_SECTION_11">
+
 					<div id="mockup_DIV_1">
 						<ul id="mockup_UL_2">
-							<li id="mockup_LI_3">
-								<a href="#getting_started" id="mockup_A_4">Get started</a>
+							<li 
+								(mouseenter)="mouseenter()"
+								(mouseleave)="mouseleave()"
+								[class.buttonActive]="hover == true || pressed == true"
+								[class.buttonInactive]="pressed == true ? false : hover == false"
+								[class.buttonPressed]="pressed == true"
+							>
+								<a 
+								[class.buttonActiveLink]="hover == true || pressed == true"
+								[class.buttonInactiveLink]="pressed == true ? false : hover == false"
+								(mousedown)="pressDown()"
+								(mouseup)="pressUp()"
+
+								> {{label}}</a>
 							</li>
-							<li id="mockup_LI_5">
-								<a href="#community" id="mockup_A_6">Get involved</a>
-							</li>
+							<!-- <li class="buttonInactive">
+								<a class="buttonInactiveLink">Get involved</a>
+							</li> -->
 						</ul>
 					</div>
-				</section>
-			</div>
-		</main>
-	</div>
-</div>
