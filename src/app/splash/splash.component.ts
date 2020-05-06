@@ -1,5 +1,5 @@
 import {Component, OnInit, ChangeDetectorRef} from '@angular/core';
-import {SdkService} from '../sdk.service'
+import {SdkService} from '../sdk.service';
 
 enum State {
   initial = 'initial',
@@ -24,6 +24,7 @@ enum State {
 })
 export class SplashComponent implements OnInit {
 
+  stake: number;
   state: State;
   stateEnum: typeof State = State;
   balance;
@@ -80,8 +81,9 @@ export class SplashComponent implements OnInit {
       this.guess = guess;
       this.salt = this.randomString(25);
       const hash = await this.sdkService.channel.contractDryRun('compute_hash', this.contractAddress, [`"${this.salt}"`, `"${guess}"`]);
+      console.log(this.stake)
       // tslint:disable-next-line:max-line-length
-      const providedHashResult = await this.sdkService.channel.contractCall('provide_hash', this.contractAddress, [`${hash}`], { amount: 10 });
+      const providedHashResult = await this.sdkService.channel.contractCall('provide_hash', this.contractAddress, [`${hash}`], { amount: this.stake });
       const casinoPickResult = await this.sdkService.channel.awaitContractCall('casino_pick');
       const revealRes = await this.sdkService.channel.contractCall('reveal', this.contractAddress,  [`"${this.salt}"`, `"${guess}"`]);
       await this.updateBalance();
