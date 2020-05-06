@@ -7,9 +7,11 @@ enum State {
   contractCreated = 'contractCreated',
   hashInserted = 'hashInserted',
   bidPlaced = 'bidPlaced',
+  lobby = 'lobby',
   won = 'won',
   lost = 'lost',
   error = 'error',
+  closed = 'closed',
   ready = 'ready',
   running = 'running',
   finished = 'finished',
@@ -24,29 +26,76 @@ export class SplashComponent implements OnInit {
 
   state: State;
   stateEnum: typeof State = State;
+  balance;
   private contractAddress;
+  private salt: string;
   private guess;
 
   constructor(private sdkService: SdkService, private changeDetectorRef: ChangeDetectorRef) {
     this.state = State.initial;
   }
 
-  updateState(newState: State):void {
+  updateState(newState: State): void {
     this.state = newState;
     this.changeDetectorRef.detectChanges();
   }
 
-  async setGuess(guess: string) {
+  async closeGame() {
+    const shutdown = await this.sdkService.channel.closeChannel();
+    console.log('--------------- Channel shutdown complete ---------------', shutdown);
+    this.updateState(State.closed);
+  }
+
+  openChannel() {
+    this.initChannelAndWaitForContract();
+    this.updateState(State.initial);
+  }
+
+  startRound() {
+    this.salt = null;
+    this.guess = null;
+    this.updateState(State.hashInserted);
+  }
+
+  async updateBalance() {
+    this.balance = await this.sdkService.channel.getBalance();
+  }
+
+  goToLobby() {
+    this.updateState(State.lobby);
+  }
+
+  randomString(len: number, charSet?: string) {
+    charSet = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let randomString = '';
+    for (let i = 0; i < len; i++) {
+      const randomPoz = Math.floor(Math.random() * charSet.length);
+      randomString += charSet.substring(randomPoz, randomPoz + 1);
+    }
+    return randomString;
+  }
+
+  async playRound(guess: string) {
     try {
-      console.log(guess);
       this.guess = guess;
-      const callRes = await this.sdkService.channel.contractCall('player_pick', this.contractAddress, [`"${guess}"`], {amount: 10});
-      this.updateState(State.bidPlaced);
+      this.salt = this.randomString(25);
+      const hash = await this.sdkService.channel.contractDryRun('compute_hash', this.contractAddress, [`"${this.salt}"`, `"${guess}"`]);
+      // tslint:disable-next-line:max-line-length
+      const providedHashResult = await this.sdkService.channel.contractCall('provide_hash', this.contractAddress, [`${hash}`], { amount: 10 });
+      const casinoPickResult = await this.sdkService.channel.awaitContractCall('casino_pick');
+      const revealRes = await this.sdkService.channel.contractCall('reveal', this.contractAddress,  [`"${this.salt}"`, `"${guess}"`]);
+      await this.updateBalance();
+      casinoPickResult.decoded.arguments[0].value !== this.guess ? this.updateState(State.won) : this.updateState(State.lost);
     } catch (err) {
       console.log(err);
       this.updateState(State.error);
     }
   }
+
+  async setGuess(guess: string) {
+    this.playRound(guess);
+  }
+
   initChannelAndWaitForContract() {
     const txTypes = []; // [ 'signedTx' ]
     this.sdkService.initChannel().then(async (channel) => {
@@ -79,32 +128,17 @@ export class SplashComponent implements OnInit {
       // On opened callback
       channel.onOpened(async () => {
         console.log('--------------- Channel Opened On-Chain ---------------');
-        this.updateState(State.channelCreated)
-
-        // channel.disconnect();
-        // await channel.reconnect();
-
+        this.updateState(State.channelCreated);
         // Block all channel operations util contract is created
         this.contractAddress = await channel.awaitContractCreate();
         console.log('--------------- Contract Deployed ---------------', this.contractAddress);
-        this.updateState(State.contractCreated)
-
-        const BackendSetHash = await channel.awaitContractCall('provide_hash');
-        console.log('--------------- Backend set the hash ---------------', BackendSetHash);
-        this.updateState(State.hashInserted)
-        // Make a contract call (provide a coin side)
-        // Wait of `reveal`
-        const RevealByBackend = await channel.awaitContractCall('reveal');
-        console.log('--------------- Backend call reveal ---------------', RevealByBackend);
-        if(RevealByBackend.decoded.arguments[1].value === this.guess) this.updateState(State.won)
-        else this.updateState(State.lost)
-
-        const shutdown = await channel.closeChannel();
-        console.log('--------------- Channel shutdown complete ---------------', shutdown);
+        await this.updateBalance();
+        this.updateState(State.contractCreated);
+        setTimeout(() => this.updateState(State.lobby), 700);
       });
     }).catch(e => {
       console.log(e);
-      this.updateState(State.error)
+      this.updateState(State.error);
     });
   }
 

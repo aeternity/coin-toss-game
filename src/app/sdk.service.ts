@@ -47,12 +47,7 @@ export class SdkService {
   readonly compilerUrl: string = environment.COMPILER_URL;
 
 
-  constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {
-
-    // storage example:
-    // this.storage.set("key", "value");
-    // this.storage.get("key"); // => "value"
-  }
+  constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {}
 
   get channel() {
     return this.$channel;
@@ -196,7 +191,7 @@ export class ChannelInstance {
     this.$channel = await Channel({
       ...this.channelParams,
       sign: this.signTx.bind(this),
-      debug: false // log WebSocket messages
+      debug: true // log WebSocket messages
     });
     this.registerHandlers();
   }
@@ -204,7 +199,7 @@ export class ChannelInstance {
   disconnect() {
     this.channel.disconnect();
     this.state.next({ state: null, unpacked: null, contractCallInfo: null }) ;
-    this.state.next(null);
+    this.status.next(null);
   }
 
   /**
@@ -247,7 +242,7 @@ export class ChannelInstance {
           if (updates.operation && updates.operation === 'OffChainCallContract' && updates.decoded.function === fnName) {
             this.actionBlocked = false;
             setTimeout(() => subscription.unsubscribe(), 0);
-            resolve(updates);
+            updates.decodedResult.abort ? reject(updates) : resolve(updates);
           }
         });
         this.actionBlocked = 'Waiting for contract call.';
@@ -291,6 +286,11 @@ export class ChannelInstance {
     return this.$onSign.pipe(
       filter(({ unpacked }) => !txTypes.length || txTypes.includes(unpacked.txType))
     );
+  }
+
+  async getBalance() {
+    const balances = await this.$channel.balances([this.channelParams.initiatorId]);
+    return balances[this.channelParams.initiatorId];
   }
 
   onOpened(callback) {
@@ -392,79 +392,92 @@ export class ChannelInstance {
     return this.updates.get(round);
   }
 
+  async contractDryRun(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {
+    if (!this.channel) {
+      throw new Error('Channel create process is not started. Please run `openChannel()`');
+    }
+
+    const callData = await this.$initiatorAccount.contractEncodeCallDataAPI(
+      CONTRACT,
+      fn,
+      aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
+    );
+    const res = await this.channel.callContractStatic(
+      {amount, callData, contract: contractAddress, abiVersion: 3},
+      (tx, options) => this.signTx('contract_call', tx, options)
+    );
+    const decodedResult = await this.decodeCallResult(fn, res.returnValue, res.returnType);
+    return decodedResult;
+  }
+
 }
 
 const CONTRACT = `// orignal contract location is at
 // https://github.com/aeternity/aeternity/blob/f3ad49602cc9e52dbaf8941b1f6304f232e8e994/test/contracts/coin_toss.aes
 contract CoinToss =
-  record state = { casino          : address,
-                   player          : address,
+  record state = { player          : address,
+                   casino          : address,
                    hash            : option(hash),
                    height          : int,
-                   player_pick     : option(string),
-                   player_stake    : int,
+                   casino_pick     : option(string),
+                   stake           : int,
                    reaction_time   : int
                    }
 
-  entrypoint init(casino: address, player: address, reaction_time: int) : state =
-    { casino          = casino,
-      player          = player,
+  entrypoint init(player: address, casino: address, reaction_time: int) : state =
+    require(Call.value == 0, "no_deposit")
+    { player          = player,
+      casino          = casino,
       hash            = None,
       height          = 0,
-      player_pick     = None,
-      player_stake    = 0,
+      casino_pick     = None,
+      stake    = 0,
       reaction_time   = reaction_time
       }
 
   payable stateful entrypoint provide_hash(hash: hash) =
-    require_casino()
+    require_player()
     require(state.hash == None, "already_has_hash")
     put(state{ hash = Some(hash),
+               stake = Call.value,
                height = Chain.block_height})
 
-  stateful entrypoint withdraw(amount: int) =
+  payable stateful entrypoint casino_pick(coin_side: string) =
     require_casino()
-    require(state.hash == None, "already_playing")
-    Chain.spend(state.casino, amount)
-
-  stateful entrypoint drain() =
-    require_casino()
-    require(state.hash == None, "already_playing")
-    Chain.spend(state.casino, Contract.balance)
-
-  payable entrypoint deposit() =
-    require_casino()
-
-  stateful payable entrypoint player_pick(coin_side: string) =
-    require_player()
-    ensure_player_turn_to_pick()
+    ensure_casino_turn_to_pick()
     ensure_coin_side(coin_side)
-    require(Call.value * 2 =< Contract.balance, "stake_too_big")
-    put(state{ player_pick  = Some(coin_side),
-               height       = Chain.block_height,
-               player_stake = Call.value})
+    require(Call.value == state.stake,
+      String.concat("wrong_stake, expected ", Int.to_str(state.stake)))
+    put(state{ casino_pick  = Some(coin_side),
+               height       = Chain.block_height})
 
   stateful entrypoint reveal(key: string, coin_side: string) =
-    require_casino()
-    ensure_casino_turn_to_reveal()
+    require_player()
+    ensure_player_turn_to_reveal()
     ensure_coin_side(coin_side)
     ensure_if_key_is_valid(key, coin_side)
-    let Some(player_pick) = state.player_pick
-    if (coin_side == player_pick)
-      Chain.spend(state.player, state.player_stake * 2)
+    let Some(casino_pick) = state.casino_pick
+    let winner : address =
+      if (coin_side == casino_pick)
+        state.casino
+      else
+        state.player
+    Chain.spend(winner, Contract.balance)
     reset_state()
+    winner
 
-  stateful entrypoint player_dispute_no_reveal() =
-    require_player()
-    ensure_casino_turn_to_reveal()
-    require(state.height  + state.reaction_time < Chain.block_height, "not_yet_allowed")
-    Chain.spend(state.player, state.player_stake * 2)
-    reset_state()
-
-  stateful entrypoint casino_dispute_no_pick() =
+  stateful entrypoint casino_dispute_no_reveal() =
     require_casino()
-    ensure_player_turn_to_pick()
+    ensure_player_turn_to_reveal()
+    require(state.height  + state.reaction_time < Chain.block_height, "not_yet_allowed")
+    Chain.spend(state.casino, Contract.balance)
+    reset_state()
+
+  stateful entrypoint player_dispute_no_pick() =
+    require_player()
+    ensure_casino_turn_to_pick()
     require(state.height + state.reaction_time < Chain.block_height, "not_yet_allowed")
+    Chain.spend(state.player, Contract.balance)
     reset_state()
 
   // a friendly helper function
@@ -477,18 +490,18 @@ contract CoinToss =
   function ensure_coin_side(coin_side: string) =
     require(coin_side == "heads" || coin_side == "tails", "invalid_coin_side")
 
-  function ensure_player_turn_to_pick() =
+  function ensure_casino_turn_to_pick() =
     require(state.hash != None, "no_hash")
-    require(state.player_pick == None, "there_is_a_pick_already")
+    require(state.casino_pick == None, "there_is_a_pick_already")
 
-  function ensure_casino_turn_to_reveal() =
-    require(state.player_pick != None, "there_is_no_pick")
-
-  function require_player() =
-    require(Call.caller == state.player, "not_player")
+  function ensure_player_turn_to_reveal() =
+    require(state.casino_pick != None, "there_is_no_pick")
 
   function require_casino() =
     require(Call.caller == state.casino, "not_casino")
+
+  function require_player() =
+    require(Call.caller == state.player, "not_player")
 
   function ensure_if_key_is_valid(key: string, coin_side: string) =
     let computed_hash = compute_hash(key, coin_side)
@@ -498,6 +511,6 @@ contract CoinToss =
   stateful function reset_state() =
     put(state{hash            = None,
               height          = 0,
-              player_pick     = None,
-              player_stake    = 0
+              casino_pick     = None,
+              stake           = 0
               })`;
