@@ -15,7 +15,8 @@
     <div *ngSwitchCase="stateEnum.lobby">
       Current balance {{ balance }} <br/>
       Ready to play?
-      <button (click)="startRound()">Start round</button>
+      Stake: <input type="number" placeholder="Stake" [(ngModel)]="stake">
+      <button (click)="startRound()">Start round</button><br/>
       <button (click)="closeGame()">Close game</button>
     </div>
     <div *ngSwitchCase="stateEnum.hashInserted">

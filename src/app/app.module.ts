@@ -12,6 +12,7 @@ import { OneIncomingTransactionComponent } from './one-incoming-transaction/one-
 import { OneUpdateComponent } from './one-update/one-update.component';
 import { SdkService } from './sdk.service';
 import { SplashComponent } from './splash/splash.component';
+import {FormsModule} from "@angular/forms";
 
 @NgModule({
   declarations: [
@@ -28,7 +29,8 @@ import { SplashComponent } from './splash/splash.component';
     AppRoutingModule,
     BrowserAnimationsModule,
     HttpClientModule,
-    StorageServiceModule
+    StorageServiceModule,
+    FormsModule
   ],
   providers: [SdkService],
   bootstrap: [AppComponent]
