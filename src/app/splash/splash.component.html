@@ -21,8 +21,8 @@
     </div>
     <div *ngSwitchCase="stateEnum.hashInserted">
       Ready to toss. Guess an outcome:
-      <button (click)="setGuess('heads')">Heads</button>
-      <button (click)="setGuess('tails')">Tails</button>
+      <button (click)="playRound('heads')">Heads</button>
+      <button (click)="playRound('tails')">Tails</button>
     </div>
     <div *ngSwitchCase="stateEnum.error">
       Ups we encountered an error. Please reload :)
