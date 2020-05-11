@@ -53,12 +53,6 @@ export class SdkService {
     return this.$channel;
   }
 
-  async getContractCode() {
-    return this.http
-      .get(`app/assets/contract.aes`, {responseType: 'text'})
-      .toPromise();
-  }
-
   async getChannelConfig(params: { address: string, port: number }): Promise<any> {
     // Get config from backend
     const configFromBackendService: any = await this.http
@@ -119,10 +113,6 @@ export class ChannelInstance {
     this.channelParams = params;
     this.networkId = networkId;
     this.$storage = storage;
-  }
-
-  set code(code: string) {
-    this.$code = code;
   }
 
   get channel() {
@@ -282,15 +272,15 @@ export class ChannelInstance {
     });
   }
 
+  async getBalance() {
+    const balances = await this.$channel.balances([this.channelParams.initiatorId]);
+    return balances[this.channelParams.initiatorId];
+  }
+
   onSign(txTypes: string[] = []) {
     return this.$onSign.pipe(
       filter(({ unpacked }) => !txTypes.length || txTypes.includes(unpacked.txType))
     );
-  }
-
-  async getBalance() {
-    const balances = await this.$channel.balances([this.channelParams.initiatorId]);
-    return balances[this.channelParams.initiatorId];
   }
 
   onOpened(callback) {
