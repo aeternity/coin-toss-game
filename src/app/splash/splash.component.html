@@ -14,8 +14,9 @@
     </div>
     <div *ngSwitchCase="stateEnum.lobby">
       Current balance {{ balance }} <br/>
-      Ready to play?
-      Stake: <input type="number" placeholder="Stake" [(ngModel)]="stake">
+      Ready to play? <br/>
+      Max stake is: {{ maxStake }} <br/>
+      Stake: <input type="number" placeholder="Stake" [max]="maxStake" [(ngModel)]="stake">
       <button (click)="startRound()">Start round</button><br/>
       <button (click)="closeGame()">Close game</button>
     </div>
