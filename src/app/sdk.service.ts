@@ -272,9 +272,8 @@ export class ChannelInstance {
     });
   }
 
-  async getBalance() {
-    const balances = await this.$channel.balances([this.channelParams.initiatorId]);
-    return balances[this.channelParams.initiatorId];
+  async getBalances() {
+    return await this.$channel.balances([this.channelParams.initiatorId, this.channelParams.responderId]);
   }
 
   onSign(txTypes: string[] = []) {

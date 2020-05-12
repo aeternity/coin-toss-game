@@ -38,6 +38,7 @@ export class SplashComponent implements OnInit {
   state: State;
   stateEnum: typeof State = State;
   balance;
+  maxStake = Number.MAX_SAFE_INTEGER;
   private contractAddress;
   private salt: string;
   private guess;
@@ -84,7 +85,7 @@ export class SplashComponent implements OnInit {
         console.log('--------------- Contract Deployed ---------------', this.contractAddress);
         await this.updateBalance();
         this.updateState(State.contractCreated);
-        setTimeout(() => this.updateState(State.lobby), 700);
+        setTimeout(async () => await this.goToLobby(), 700);
       });
     }).catch(e => {
       console.log(e);
@@ -112,7 +113,9 @@ export class SplashComponent implements OnInit {
     this.updateState(State.hashInserted);
   }
 
-  goToLobby() {
+  async goToLobby() {
+    const [a, b] = Object.values(await this.sdkService.channel.getBalances());
+    this.maxStake = (a > b ? b : a) -1;
     this.updateState(State.lobby);
   }
 
@@ -143,13 +146,13 @@ export class SplashComponent implements OnInit {
             // Insufficient balance
             if (reason.code === 1001) {
               alert(`Game error: ${reason.message}`);
-              this.updateState(State.lobby);
+              await this.goToLobby();
             }
           }
           // Not enough in reserve
           if (err.errorCode === 555) {
             alert(`Game error: Not enough coins left`);
-            this.updateState(State.lobby);
+            await this.goToLobby();
           }
           break;
         // Casino pick
@@ -170,6 +173,6 @@ export class SplashComponent implements OnInit {
   }
 
   async updateBalance() {
-    this.balance = await this.sdkService.channel.getBalance();
+    this.balance = (await this.sdkService.channel.getBalances())[this.sdkService.channel.channelParams.initiatorId];
   }
 }
