@@ -115,7 +115,7 @@ export class SplashComponent implements OnInit {
 
   async goToLobby() {
     const [a, b] = Object.values(await this.sdkService.channel.getBalances());
-    this.maxStake = (a > b ? b : a) -1;
+    this.maxStake = (a > b ? b : a) - 3;
     this.updateState(State.lobby);
   }
 
