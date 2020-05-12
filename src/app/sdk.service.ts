@@ -9,7 +9,7 @@ import Channel from '@aeternity/aepp-sdk/es/channel';
 import MemoryAccount from '@aeternity/aepp-sdk/es/account/memory';
 import Universal from '@aeternity/aepp-sdk/es/ae/universal';
 import Node from '@aeternity/aepp-sdk/es/node';
-import { unpackTx } from '@aeternity/aepp-sdk/es/tx/builder';
+import { unpackTx, buildTxHash } from '@aeternity/aepp-sdk/es/tx/builder';
 import { getFunctionACI } from '@aeternity/aepp-sdk/es/contract/aci/helpers';
 import { prepareArgsForEncode } from '@aeternity/aepp-sdk/es/contract/aci';
 import { buildContractId } from '@aeternity/aepp-sdk/es/tx/builder/helpers';
@@ -348,8 +348,29 @@ export class ChannelInstance {
       throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
     }
     const res = await this.channel.shutdown((tx, options) => this.signTx('shutdown_tx', tx, options));
-    this.channel.disconnect();
+    this.disconnect();
     return res;
+  }
+
+  async forceProgress(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {
+    if (!this.channel) {
+      throw new Error('Channel create process is not started. Please run `openChannel()`');
+    }
+
+    const callData = await this.$initiatorAccount.contractEncodeCallDataAPI(
+      CONTRACT,
+      fn,
+      aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
+    );
+    const res = await this.channel.forceProgress({
+      amount,
+      callData,
+      contract: contractAddress,
+      abiVersion: 3
+    }, (tx, options) => this.signTx('contract_call', tx, options));
+    const hash = buildTxHash(res.tx);
+    const txInfo = await this.$initiatorAccount.tx(hash);
+    return { hash, tx: txInfo };
   }
 
   async contractCall(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {
