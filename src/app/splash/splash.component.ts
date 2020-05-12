@@ -115,7 +115,7 @@ export class SplashComponent implements OnInit {
 
   async goToLobby() {
     const [a, b] = Object.values(await this.sdkService.channel.getBalances());
-    this.maxStake = (a > b ? b : a) - 3;
+    this.maxStake = (a > b ? b : a) - (+this.sdkService.channel.channelParams.channelReserve);
     this.updateState(State.lobby);
   }
 
@@ -149,9 +149,9 @@ export class SplashComponent implements OnInit {
               await this.goToLobby();
             }
           }
-          // Not enough in reserve
+          // Casino insufficient balance
           if (err.errorCode === 555) {
-            alert(`Game error: Not enough coins left`);
+            alert(`Game error: Casino Insufficient balance`);
             await this.goToLobby();
           }
           break;
