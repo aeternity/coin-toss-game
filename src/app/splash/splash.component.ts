@@ -3,13 +3,13 @@ import {SdkService} from '../sdk.service';
 
 const randomString = (len: number, charSet?: string) => {
   charSet = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  return (new Array(len))
+  return [...Array(len).keys()]
     .reduce(
       (acc, _, i) => {
         const randomPoz = Math.floor(Math.random() * charSet.length);
         return acc.concat(charSet.substring(randomPoz, randomPoz + 1));
       }, '');
-}
+};
 
 enum State {
   initial = 'initial',
@@ -117,7 +117,7 @@ export class SplashComponent implements OnInit {
   }
 
   async playRound(guess: string) {
-    let step = 0;
+    let step = 1;
     try {
       this.guess = guess;
       this.salt = randomString(25);
@@ -132,9 +132,26 @@ export class SplashComponent implements OnInit {
       await this.updateBalance();
       casinoPickResult.decoded.arguments[0].value !== this.guess ? this.updateState(State.won) : this.updateState(State.lost);
     } catch (err) {
+      this.stake = 0;
+      this.guess = null;
+      this.salt = null;
       switch (step) {
         // Provide hash
         case 1:
+          if (err.wsMessage && err.wsMessage.error) {
+            const [reason] = err.wsMessage.error.data;
+            // Insufficient balance
+            if (reason.code === 1001) {
+              alert(`Game error: ${reason.message}`);
+              this.updateState(State.lobby);
+            }
+          }
+          // Not enough in reserve
+          if (err.errorCode === 555) {
+            alert(`Game error: Not enough coins left`);
+            this.updateState(State.lobby);
+          }
+          break;
         // Casino pick
         case 2:
         // Reveal
