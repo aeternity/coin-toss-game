@@ -368,7 +368,7 @@ export class ChannelInstance {
       (tx, options) => this.signTx('contract_call', tx, options)
     );
     if (!res.accepted) {
-      throw new Error(`Contract call error: ${res}`);
+      throw Object.assign(Error(`Contract call error: ${res.errorMessage}`), res);
     }
     const unpacked = unpackTx(res.signedTx);
     const round = unpacked.tx.encodedTx.tx.round;
