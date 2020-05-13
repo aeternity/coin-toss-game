@@ -225,8 +225,12 @@ export class ChannelInstance {
     return { round, decoded: decodedCallData, operation, update };
   }
 
+  async pollForHeight(height: string | number) {
+    return this.$initiatorAccount.awaitHeight(height, { attempts: 50, interval: 1000 });
+  }
+
   async awaitContractCall(fnName) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const subscription = this.state.subscribe(async ({ unpacked, updates }) => {
           if (updates.operation && updates.operation === 'OffChainCallContract' && updates.decoded.function === fnName) {
@@ -236,6 +240,11 @@ export class ChannelInstance {
           }
         });
         this.actionBlocked = 'Waiting for contract call.';
+        const height = await this.$initiatorAccount.height();
+        const poll = await this.pollForHeight(height + 15);
+        if (poll) {
+          reject({ reactionTimeExceed: true });
+        }
       } catch (e) {
         reject(e);
       }

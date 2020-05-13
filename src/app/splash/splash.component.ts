@@ -42,6 +42,7 @@ export class SplashComponent implements OnInit {
   private contractAddress;
   private salt: string;
   private guess;
+  private showForceProgress = false;
 
   constructor(private sdkService: SdkService, private changeDetectorRef: ChangeDetectorRef) {
     this.state = State.initial;
@@ -157,6 +158,11 @@ export class SplashComponent implements OnInit {
           break;
         // Casino pick
         case 2:
+          if (err.reactionTimeExceed) {
+            this.showForceProgress = true;
+            this.changeDetectorRef.detectChanges();
+          }
+          break;
         // Reveal
         case 3:
         default:
@@ -164,6 +170,10 @@ export class SplashComponent implements OnInit {
           this.updateState(State.error);
       }
     }
+  }
+  async forceProgress() {
+    const disputRes = await this.sdkService.channel.forceProgress('player_dispute_no_pick', this.contractAddress, []);
+    this.goToLobby();
   }
 
   async closeGame() {

@@ -24,6 +24,7 @@
       Ready to toss. Guess an outcome:
       <button (click)="playRound('heads')">Heads</button>
       <button (click)="playRound('tails')">Tails</button>
+      <button (click)="forceProgress()" *ngIf="showForceProgress">Force Progress</button>
     </div>
     <div *ngSwitchCase="stateEnum.error">
       Ups we encountered an error. Please reload :)
