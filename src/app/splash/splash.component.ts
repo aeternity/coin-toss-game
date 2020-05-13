@@ -15,8 +15,10 @@ enum State {
   initial = 'initial',
   channelCreated = 'channelCreated',
   contractCreated = 'contractCreated',
+  roundStarted = 'roundStarted',
+  waitForHash = 'waitForHash',
   hashInserted = 'hashInserted',
-  bidPlaced = 'bidPlaced',
+  casinoMadePick = 'casinoMadePick',
   lobby = 'lobby',
   won = 'won',
   lost = 'lost',
@@ -43,6 +45,7 @@ export class SplashComponent implements OnInit {
   private salt: string;
   private guess;
   private showForceProgress = false;
+  private reactionTime = 15;
 
   constructor(private sdkService: SdkService, private changeDetectorRef: ChangeDetectorRef) {
     this.state = State.initial;
@@ -82,7 +85,9 @@ export class SplashComponent implements OnInit {
         console.log('--------------- Channel Opened On-Chain ---------------');
         this.updateState(State.channelCreated);
         // Block all channel operations util contract is created
-        this.contractAddress = await channel.awaitContractCreate();
+        const cInfo = await channel.awaitContractCreate();
+        this.contractAddress = cInfo.contractId;
+        this.reactionTime = cInfo.updates.decoded.arguments[2].value;
         console.log('--------------- Contract Deployed ---------------', this.contractAddress);
         await this.updateBalance();
         this.updateState(State.contractCreated);
@@ -111,7 +116,8 @@ export class SplashComponent implements OnInit {
   startRound() {
     this.salt = null;
     this.guess = null;
-    this.updateState(State.hashInserted);
+    this.showForceProgress = false;
+    this.updateState(State.roundStarted);
   }
 
   async goToLobby() {
@@ -123,13 +129,15 @@ export class SplashComponent implements OnInit {
   async playRound(guess: string) {
     let step = 1;
     try {
+      this.updateState(State.waitForHash);
       this.guess = guess;
       this.salt = randomString(25);
       const hash = await this.sdkService.channel.contractDryRun('compute_hash', this.contractAddress, [`"${this.salt}"`, `"${guess}"`]);
       // tslint:disable-next-line:max-line-length
       const providedHashResult = await this.sdkService.channel.contractCall('provide_hash', this.contractAddress, [`${hash}`], { amount: this.stake });
       step += 1;
-      const casinoPickResult = await this.sdkService.channel.awaitContractCall('casino_pick');
+      this.updateState(State.hashInserted);
+      const casinoPickResult = await this.sdkService.channel.awaitContractCall('casino_pick', { reactTime: this.reactionTime });
       step += 1;
       const revealRes = await this.sdkService.channel.contractCall('reveal', this.contractAddress,  [`"${this.salt}"`, `"${guess}"`]);
       step += 1;
@@ -171,6 +179,7 @@ export class SplashComponent implements OnInit {
       }
     }
   }
+
   async forceProgress() {
     const disputRes = await this.sdkService.channel.forceProgress('player_dispute_no_pick', this.contractAddress, []);
     this.goToLobby();

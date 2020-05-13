@@ -203,7 +203,7 @@ export class ChannelInstance {
           const round = unpacked.tx.encodedTx.tx.round;
           const owner = updates.update.owner;
           this.actionBlocked = false;
-          resolve(buildContractId(owner, round));
+          resolve({ contractId: buildContractId(owner, round), updates });
         }
       });
       this.actionBlocked = 'Waiting for contract create.';
@@ -226,10 +226,10 @@ export class ChannelInstance {
   }
 
   async pollForHeight(height: string | number) {
-    return this.$initiatorAccount.awaitHeight(height, { attempts: 50, interval: 1000 });
+    return this.$initiatorAccount.awaitHeight(height, { attempts: 100, interval: 1000 });
   }
 
-  async awaitContractCall(fnName) {
+  async awaitContractCall(fnName, { reactTime = 15 } = {}) {
     return new Promise(async (resolve, reject) => {
       try {
         const subscription = this.state.subscribe(async ({ unpacked, updates }) => {
@@ -241,7 +241,7 @@ export class ChannelInstance {
         });
         this.actionBlocked = 'Waiting for contract call.';
         const height = await this.$initiatorAccount.height();
-        const poll = await this.pollForHeight(height + 15);
+        const poll = await this.pollForHeight(height + reactTime);
         if (poll) {
           reject({ reactionTimeExceed: true });
         }

@@ -20,11 +20,26 @@
       <button (click)="startRound()">Start round</button><br/>
       <button (click)="closeGame()">Close game</button>
     </div>
-    <div *ngSwitchCase="stateEnum.hashInserted">
+    <div *ngSwitchCase="stateEnum.roundStarted">
       Ready to toss. Guess an outcome:
       <button (click)="playRound('heads')">Heads</button>
       <button (click)="playRound('tails')">Tails</button>
+    </div>
+    <div *ngSwitchCase="stateEnum.waitForHash">
+      Game status: <br/>
+        Hash Created. <br/>
+        Casino Pick. <br/>
+    </div>
+    <div *ngSwitchCase="stateEnum.hashInserted">
+      Game status: <br/>
+      ✔ Hash Created. <br/>
+      Casino Pick. <br/>
       <button (click)="forceProgress()" *ngIf="showForceProgress">Force Progress</button>
+    </div>
+    <div *ngSwitchCase="stateEnum.casinoMadePick">
+      Game status: <br/>
+      ✔ Hash Created. <br/>
+      ✔ Casino Pick. <br/>
     </div>
     <div *ngSwitchCase="stateEnum.error">
       Ups we encountered an error. Please reload :)
