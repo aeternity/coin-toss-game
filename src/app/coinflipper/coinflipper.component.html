@@ -2,7 +2,9 @@
 [className]="coinside != '' ? coinside : ''"
 (click)="flipcoin()">
     <div class="side-a"></div>
-    <div class="side-b"></div>
+    <div class="side-b">            
+        <div class="img-container"> <img style="margin-top: 32%" src="/assets/img/ae-coinlogo.png" alt="Next thumb"/> </div>
+    </div>
 </div>
 
 <div><p *ngIf="coinsideThrowReveal" class="label">You flipped {{coinsideThrowReveal}} !</p></div>

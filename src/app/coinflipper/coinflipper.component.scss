@@ -99,4 +99,7 @@ body {
     to { -webkit-transform: rotateY(1980deg); -moz-transform: rotateY(1980deg); transform: rotateY(1980deg); }
   }
   
-  
+  .img-container {
+    text-align: center;
+    display: block;
+  }
