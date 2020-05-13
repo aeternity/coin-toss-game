@@ -125,6 +125,7 @@ export class SplashComponent implements OnInit {
       this.guess = guess;
       this.salt = randomString(25);
       const hash = await this.sdkService.channel.contractDryRun('compute_hash', this.contractAddress, [`"${this.salt}"`, `"${guess}"`]);
+      console.log("Computed hash: ", hash)
       // tslint:disable-next-line:max-line-length
       const providedHashResult = await this.sdkService.channel.contractCall('provide_hash', this.contractAddress, [`${hash}`], { amount: this.stake });
       step += 1;

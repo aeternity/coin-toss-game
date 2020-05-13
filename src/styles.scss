@@ -138,3 +138,8 @@ body {
 	-webkit-transition-delay: 0s;
 	transition-delay: 0s; */
 }
+
+/* Turning the right hand side update into a left hand side */
+.flipped .outgoing.transaction{
+  transform: rotate(180deg)
+}

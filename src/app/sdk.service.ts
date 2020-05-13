@@ -383,6 +383,10 @@ export class ChannelInstance {
       fn,
       aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
     );
+
+      console.log("SDK Service: callData: ", callData)
+      console.log("SDK Service: amount:", amount)
+
     const res = await this.channel.callContract(
       {amount, callData, contract: contractAddress, abiVersion: 3},
       (tx, options) => this.signTx('contract_call', tx, options)

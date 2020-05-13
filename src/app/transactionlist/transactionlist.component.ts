@@ -19,7 +19,7 @@ export class TransactionlistComponent implements OnInit {
   constructor(private sdkService: SdkService) {
 
   }
-
+/* 
   initChannelAndWaitForContract() {
     const txTypes = []; // [ 'signedTx' ]
     this.sdkService.initChannel().then(async (channel) => {
@@ -71,11 +71,12 @@ export class TransactionlistComponent implements OnInit {
         console.log('--------------- Channel shutdown complete ---------------', shutdown);
       });
     }).catch(e => {  console.log(e); });
-  }
+  } */
+  
 
   ngOnInit() {
     // Init Channel;
-    this.initChannelAndWaitForContract();
+    //this.initChannelAndWaitForContract();
     this.channelUpdates = ['foo'];
 
     setInterval(() => {
