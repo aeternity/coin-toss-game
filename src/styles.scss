@@ -143,3 +143,14 @@ body {
 .flipped .outgoing.transaction{
   transform: rotate(180deg)
 }
+
+.flipLabel{
+   -moz-transform:    scaleY(-1) translateY(9px); /* Gecko */
+  -o-transform:      scaleY(-1) translateY(9px); /* Opera */
+  -webkit-transform: scaleY(-1) translateY(9px); /* Webkit */
+  transform:         scale(-1, -1) translateY(9px); /* Standard */
+}
+
+.transform180{
+  transform:         scale(-1, -1) 
+}

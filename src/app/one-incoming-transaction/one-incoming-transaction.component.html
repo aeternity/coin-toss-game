@@ -52,22 +52,22 @@
 				(mouseover)="mouseOverArrow()" 	
 				(mouseleave)="mouseLeaveArrow()" 
 				
-			  class="prev"  #theEntry>
+			  class="next"  #theEntry>
 				<span class="icon-wrap" 
 				[className]="isExpanded ? 'outExpanded icon-wrap' : 'icon-wrap' "
 				 >
 				 <p 
-				 [className]="delayedIsHovered ? 'txlabel hide' : 'txlabel' "
+				 [className]="delayedIsHovered ? 'txlabel hide flipLabel' : 'txlabel flipLabel' "
 				 > Contract call </p>
 					<svg class="icon" width="24" height="24" viewBox="0 0 64 64"> <use xlink:href="#arrow-right-2"></use> </svg>
 					<!-- <svg class="icon" width="24" height="24" viewBox="0 0 64 64"> <use xlink:href="{{ !isHovered ? '#arrow-right-2' : '#pin' }} "></use> </svg> -->
 				</span>
 				<div class="txcontent"
-					[className]="isExpanded ? 'outExpanded txcontent' : 'txcontent' "
+					[className]="isExpanded ? 'outExpanded txcontent justFlip' : 'txcontent justFlip' "
 				> 
-                    <span>Outgoing Transaction</span>
-                    <h3>Placeholder for information and buttons</h3>
-                    <p>Signed by ak_1234</p>
+				<p class="transform180">Signed by ak_1234</p>
+				<h3 class="transform180">Placeholder for information and buttons</h3>
+				<span class="transform180">Incoming Transaction</span>
                     <img src="/assets/img/21.png" alt="Next thumb"/>
                 </div>
             </a>

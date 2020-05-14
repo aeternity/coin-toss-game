@@ -10,6 +10,7 @@ import {
   transition,
   AnimationEvent
 } from '@angular/animations';
+import {SdkService} from "../sdk.service";
 
 /* https://www.usefuldev.com/post/Angular:%20using%20animations%20with%20NgIf
  */
@@ -91,11 +92,10 @@ export class OneIncomingTransactionComponent implements OnInit {
   isHovered: boolean = false;
   delayedIsHovered: boolean = false;
 
-  constructor(private ref: ChangeDetectorRef) {
+  constructor(private ref: ChangeDetectorRef, private sdkService: SdkService) {
   }
 
   ngOnInit() {
-
   }
 
   ngAfterViewInit() {
@@ -111,9 +111,7 @@ export class OneIncomingTransactionComponent implements OnInit {
   }
 
   mouseOverArrow () {
-    // console.log("Arrow hovered!")
     this.isHovered = true
-    this.ref.detectChanges()
     setTimeout(() => {
       this.delayedIsHovered = true
       this.ref.detectChanges()
@@ -121,7 +119,6 @@ export class OneIncomingTransactionComponent implements OnInit {
   }
 
   mouseLeaveArrow () {
-    this.isHovered = false
     setTimeout(() => {
       this.isExpanded == true ? this.delayedIsHovered = true : this.delayedIsHovered = false
 
@@ -169,7 +166,3 @@ export class OneIncomingTransactionComponent implements OnInit {
 }
 
 export type FadeState = 'visible' | 'hidden';
-
-
-
-
