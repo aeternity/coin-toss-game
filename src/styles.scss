@@ -170,13 +170,20 @@ body {
 
 .center {
   margin: auto;
-  width: 50%;
-  margin-top: 10px;
+  width: 100%;
+  padding: 10px;
   >.label {
-    min-width: 100px
+    min-width: 100%
   }
 }
 
-.ui .basic .label {
-  min-width: 100px !important
+.roboto{
+  font-family: "Roboto";
+  font-weight: 100;
+  
+}
+
+.styledlabel{
+  background-color: #F4F6F8 !important;
+  border:#F4F6F8 !important;
 }
