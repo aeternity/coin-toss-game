@@ -287,6 +287,9 @@ body {
   background: linear-gradient(172deg, rgba(55,72,177,1) 0%, rgba(144,78,225,1) 100%);
   filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#3748b1",endColorstr="#904ee1",GradientType=1);
   }
+  .backWhite {
+    background: white
+  }
 
 .box {
   height: 116px;
@@ -426,4 +429,8 @@ body {
   color: #353541;
   font-size: 11px;
   text-transform: uppercase;
+}
+
+.balance-wrapper{
+  padding-right: 10px
 }

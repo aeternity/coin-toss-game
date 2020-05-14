@@ -1,5 +1,7 @@
 import {Component, OnInit, ChangeDetectorRef} from '@angular/core';
 import {SdkService} from '../sdk.service';
+import { SuiModule } from 'ng2-semantic-ui';
+
 
 const randomString = (len: number, charSet?: string) => {
   charSet = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

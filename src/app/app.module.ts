@@ -14,6 +14,8 @@ import { SdkService } from './sdk.service';
 import { SplashComponent } from './splash/splash.component';
 import {FormsModule} from "@angular/forms";
 import { InlineSVGModule } from 'ng-inline-svg';
+import {SuiModule} from 'ng2-semantic-ui';
+
 
 @NgModule({
   declarations: [
@@ -32,7 +34,8 @@ import { InlineSVGModule } from 'ng-inline-svg';
     HttpClientModule,
     StorageServiceModule,
     FormsModule,
-    InlineSVGModule.forRoot(),
+    SuiModule,
+    InlineSVGModule.forRoot()
   ],
   providers: [SdkService],
   bootstrap: [AppComponent]

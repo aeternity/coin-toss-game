@@ -1,6 +1,5 @@
 /* You can add global styles to this file, and also import other style files */
 
-
 /* make first always be open */
 /* 
 app-onetransaction:nth-child(1) .nav-growpop > a > span{
@@ -167,4 +166,17 @@ body {
   display: block;
   margin: auto;
   padding: auto;
+}
+
+.center {
+  margin: auto;
+  width: 50%;
+  margin-top: 10px;
+  >.label {
+    min-width: 100px
+  }
+}
+
+.ui .basic .label {
+  min-width: 100px !important
 }

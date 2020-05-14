@@ -1,4 +1,4 @@
-<div>
+<div >
   <h1>Welcome to the coin toss game</h1>
   <div [ngSwitch]="state" class="state-indicator">
     <div *ngSwitchCase="stateEnum.initial">
@@ -47,7 +47,7 @@
   </div>
 </div>
 
-<div id="phone">
+<div style="margin-top: 120px" id="phone">
   <div id="screen">
     <div *ngIf="state != 'initial' && state != 'channelCreated' && state != 'contractCreated'" id="header">
       <ul id="menu">
@@ -108,9 +108,18 @@
 
     <!-- SCREEN 2! -->
     <ng-container *ngIf="state == 'lobby'"> 
-      <div class="box fullscreen back11">
-        <div class="logo-big" [inlineSVG]="'/assets/icons/aeternity-icon-white.svg'"  >
+      <div class="box fullscreen backWhite">
+<div class="center balance-wrapper">
+        <div class="ui labeled button"  tabindex="0">
+          <div class="ui button">
+             Balance
+          </div>
+          <div class="ui basic label" style="min-width: 100px">
+            2,048
+          </div>
         </div>
+      </div>
+
         <div class="logo-text">
           <span>Cointoss Game</span>
         </div>
