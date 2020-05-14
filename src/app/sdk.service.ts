@@ -14,7 +14,9 @@ import { getFunctionACI } from '@aeternity/aepp-sdk/es/contract/aci/helpers';
 import { prepareArgsForEncode } from '@aeternity/aepp-sdk/es/contract/aci';
 import { buildContractId } from '@aeternity/aepp-sdk/es/tx/builder/helpers';
 import * as StringUtils from '@aeternity/aepp-sdk/es/utils/string';
-import {BehaviorSubject, Subject} from 'rxjs';
+import * as Crypto from '@aeternity/aepp-sdk/es/utils/crypto';
+import { BehaviorSubject, Subject } from 'rxjs';
+import { getHdWalletAccountFromMnemonic, generateMnemonic } from '@aeternity/aepp-sdk/es/utils/hd-wallet';
 import { filter } from 'rxjs/operators';
 
 enum ActionTypes {
@@ -45,12 +47,20 @@ export class SdkService {
   readonly backendServiceUrl: string = environment.BACKEND_SERVICE_URL;
   readonly nodeUrl: string = environment.NODE_URL;
   readonly compilerUrl: string = environment.COMPILER_URL;
+  public accountInit = new BehaviorSubject(false);
 
-
-  constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {}
+  constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {
+    if (storage.get("mnemonic")) {
+      this.initWallet(storage.get("mnemonic"));
+    }
+  }
 
   get channel() {
     return this.$channel;
+  }
+
+  get hasAccount() {
+    return this.accountInit.getValue();
   }
 
   async getChannelConfig(params: { address: string, port: number }): Promise<any> {
@@ -64,7 +74,40 @@ export class SdkService {
       .reduce((acc, [key, value]) => ({ ...acc, [StringUtils.snakeToPascal(key)]: value }), { url: this.wsUrl });
   }
 
+  async initWallet(mnemonic: string) {
+    const keypair = getHdWalletAccountFromMnemonic(mnemonic, 0);
+    this.initiatorAccount = MemoryAccount({ keypair });
+    this.storage.set('mnemonic', mnemonic);
+    this.accountInit.next(true);
+  }
+
+  importAccount(mnemonic: string) {
+    this.initWallet(mnemonic);
+  }
+
+  generateAccount() {
+    const mnemonic = generateMnemonic();
+    console.log('--------------- Mnemonic is: ',mnemonic);
+    this.initWallet(mnemonic);
+    return mnemonic;
+  }
+
+  removeAccount() {
+    this.storage.remove('mnemonic');
+    this.accountInit.next(false);
+  }
+
+  ensureAccountInit() {
+    return new Promise(resolve => {
+      if (this.accountInit.getValue()) resolve();
+      this.accountInit.subscribe(val => {
+        if (val) resolve();
+      })
+    });
+  }
+
   async initChannel() {
+    await this.ensureAccountInit();
     const address = await this.initiatorAccount.address();
     const channelConfig = await this.getChannelConfig({ address, port: 1564 });
     this.$sdkInstance = await Universal({

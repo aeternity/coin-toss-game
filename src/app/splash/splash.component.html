@@ -1,6 +1,17 @@
 <div>
   <h1>Welcome to the coin toss game</h1>
-  <div [ngSwitch]="state" class="state-indicator">
+  <div *ngIf="!sdkService.hasAccount">
+    
+    <button *ngIf="!walletInitType" (click)="setGenerateWallet()">Generate account</button>
+    <button *ngIf="!walletInitType" (click)="setImportWallet()">Import existing account</button>
+    <div *ngIf="walletInitType === 'import'">
+      <textarea rows="10" cols="50" [(ngModel)]="mnemonic"></textarea>
+      <button *ngIf="validMnemonic(mnemonic)"  (click)="importWallet()">Import</button>
+      <button  (click)="walletInitType = null">Back</button>
+    </div>
+  </div>
+  <div [ngSwitch]="state" class="state-indicator" *ngIf="sdkService.hasAccount">
+    <div *ngIf="mnemonic">Account created. Recovery phrase is <b>{{ mnemonic }}</b></div>
     <div *ngSwitchCase="stateEnum.initial">
       Creating channel...
     </div>
@@ -60,5 +71,7 @@
       You need to open a channel to play a game <br/>
       <button (click)="openChannel()">Open Channel</button>
     </div>
+
+    <button (click)="removeAccount()">Remove account</button>
   </div>
 </div>

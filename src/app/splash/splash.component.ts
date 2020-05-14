@@ -1,5 +1,6 @@
 import {Component, OnInit, ChangeDetectorRef} from '@angular/core';
 import {SdkService} from '../sdk.service';
+import { validateMnemonic } from '@aeternity/bip39';
 
 const randomString = (len: number, charSet?: string) => {
   charSet = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -41,6 +42,8 @@ export class SplashComponent implements OnInit {
   stateEnum: typeof State = State;
   balance;
   maxStake = Number.MAX_SAFE_INTEGER;
+  walletInitType;
+  mnemonic;
   private contractAddress;
   private salt: string;
   private guess;
@@ -193,5 +196,29 @@ export class SplashComponent implements OnInit {
 
   async updateBalance() {
     this.balance = (await this.sdkService.channel.getBalances())[this.sdkService.channel.channelParams.initiatorId];
+  }
+
+  setImportWallet() {
+    this.walletInitType = 'import';
+  }
+
+  importWallet() {
+    console.log('--------------- Import account ---------------');
+    this.sdkService.importAccount(this.mnemonic);
+    this.mnemonic = null;
+  }
+
+  validMnemonic() {
+    return validateMnemonic(this.mnemonic);
+  }
+
+  setGenerateWallet() {
+    this.walletInitType = 'generate';
+    console.log('--------------- Generate account ---------------');
+    this.mnemonic = this.sdkService.generateAccount();
+  }
+
+  removeAccount() {
+    this.sdkService.removeAccount();
   }
 }
