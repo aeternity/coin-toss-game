@@ -252,6 +252,10 @@ body {
       transform: translateY(-50%);
     }
 
+    &.inactive{ 
+      background: #10C1D6 !important;
+      opacity: 0.37;
+    }
   }
 
   &.caption{
@@ -267,6 +271,33 @@ body {
     }
   }
 
+  .pinkCaption{
+    margin:auto;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    width: 80%;
+    text-transform: none;  
+    color: rgb(247, 41, 110);
+    font-size: 15px !important;
+    position: relative;
+    >span {
+      margin-bottom: 30px;
+    }
+  }
+
+  &.greyCaption{
+    margin:auto;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    width: 80%;
+    text-transform: none;  
+    color: rgb(247, 41, 110);
+    font-size: 15px !important;
+    position: relative;
+    >span {
+      margin-bottom: 30px;
+    }
+  }
   
  
 }
@@ -325,7 +356,7 @@ body {
     position: absolute;
     color: #fff;
     font-size: 15px;
-    bottom: 0;
+    bottom: 20;
     left: 0;
     text-transform: uppercase;
     padding-left: 0;
@@ -339,6 +370,28 @@ body {
     }
 
   }
+
+  .bottom {
+    font-family: "Roboto";
+    text-align: center;
+    position: absolute;
+    color: red;
+    font-size: 15px;
+    bottom: 0;
+    left: 0;
+    text-transform: uppercase;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 70px;
+    width:100%;
+    font-weight: 600;
+
+    &span{
+      text-align: center;
+    }
+
+  }
+
 }
 
 #about {
@@ -434,3 +487,8 @@ body {
 .balance-wrapper{
   padding-right: 10px
 }
+
+.stake{
+  margin-bottom: 25px;
+}
+

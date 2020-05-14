@@ -1,5 +1,9 @@
-<div >
+
+<!-- Debug view  -->
+<h1>Welcome to the coin toss game ! </h1> 
+<!-- <div >
   <h1>Welcome to the coin toss game</h1>
+  <span>{{state}}</span>
   <div [ngSwitch]="state" class="state-indicator">
     <div *ngSwitchCase="stateEnum.initial">
       Creating channel...
@@ -38,6 +42,7 @@
       Current balance {{ balance }} <br/>
       You lost! :( <br/>
       <button (click)="closeGame()">Close game</button>
+      
       <button (click)="goToLobby()">Lobby</button>
     </div>
     <div *ngSwitchCase="stateEnum.closed">
@@ -46,7 +51,13 @@
     </div>
   </div>
 </div>
+ -->
+<div class="state-indicator">
+  Current State: {{state}}
+</div>
 
+
+<!-- Main view  -->
 <div style="margin-top: 120px" id="phone">
   <div id="screen">
     <div *ngIf="state != 'initial' && state != 'channelCreated' && state != 'contractCreated'" id="header">
@@ -63,7 +74,7 @@
 <div class="pages">
     <div class="page back2" id="about">
       <div>
-        <span>Pullmenu</span><br/>Menu interaction concept<br/>by @_fbrz
+        <span>Pullmenu</span><br/>Menu interaction concept<br/>
       </div>
     </div>
 
@@ -98,6 +109,7 @@
         <div *ngIf="screen1.showLoader && !stateEnum.error" class="loader-big" [inlineSVG]="'/assets/icons/cycle-loader.svg'"  >
         </div> 
 
+
       <div class="bottom-footer" >
         <span>Powered by AE</span>
       </div>
@@ -109,45 +121,96 @@
     <!-- SCREEN 2! -->
     <ng-container *ngIf="state == 'lobby'"> 
       <div class="box fullscreen backWhite">
+
     <div class="center balance-wrapper">
         <div class="ui labeled button"  tabindex="0">
           <div class="ui button roboto">
              Balance
           </div>
           <div class="ui basic label styledlabel roboto light" style="min-width: fit-content(100%); font-weight:350">
-            9007199254740991
+            {{ balance }} 
           </div>
         </div>
       </div>
 
-        <div class="logo-text">
-          <span>Cointoss Game</span>
-        </div>
-        <!-- Play button -->
-        <div (click)="initChannelAndWaitForContract()" class="logo-text button">
-          <span>Start Playing !</span>
-        </div>
+        <!-- The Coin -->
+        <div style="margin-top: 15%" >
+          <app-coinflipper (throwResult)="setThrowResult($event)" class="logo-text button">
+        </app-coinflipper>
+      </div>
+    
 
         <!-- Updates -->
-        <div class="logo-text caption">
-          <span *ngIf="screen1.showLoader && state != 'error'" >Creating Channel...</span> <br><br>
-          <span *ngIf="state == 'channelCreated' && state != 'error'">Deploying Contract...</span>
-          <span *ngIf="state == 'contractDeployed' && state != 'error'">Done !</span>
+        <div class="logo-text pinkCaption">
+          
+          <span *ngIf="side == 'undefined' " >Tap the coin to flip it!</span>
+          <span *ngIf="side == 'heads' && state != 'error'">You flipped heads ! <br> Place your bet or flip again!</span>
+          <span *ngIf="side == 'tails'&& state != 'error'">You flipped tails ! <br> Place your bet or flip again!</span>
 
           <span *ngIf="state == 'error'">Connection error - have you set up the Node and Channel Service?</span>
         </div>
-        
-        <!-- Loader -->
-        <div *ngIf="screen1.showLoader && !stateEnum.error" class="loader-big" [inlineSVG]="'/assets/icons/cycle-loader.svg'"  >
-        </div> 
 
-      <div class="bottom-footer" >
-        <span>Powered by AE</span>
+      <div class="bottom" >
+
+        <div class="ui labeled input stake">
+          <div class="ui label">
+            Stake:
+          </div>
+          <input type="number" placeholder="Stake" [max]="maxStake" [(ngModel)]="stake">
+        </div>
+
+        <div  *ngIf="side != 'undefined' && stake != 0 && balance != 0" (click)="startRound()" class="logo-text button">
+          <span>Place Bet & Go!</span>
+        </div>
+
+        <div *ngIf="side == 'undefined' || stake == 0 || balance == 0" class="logo-text button inactive">
+          <span>Flip Coin & Set Stake</span>
+        </div>
+
+
       </div>
       </div>
 
     </ng-container>
 
+
+    <!-- SCREEN 3! -->
+    <ng-container *ngIf="state == 'hashInserted' || state == 'won' || state == 'lost'"> 
+      <div class="box fullscreen backWhite">
+  
+      
+        <!-- Updates -->
+        <div class="logo-text pinkCaption">
+          <br>
+          <span  *ngIf="state != 'won' &&  state != 'lost'" >Your choice will be placed into the contract, the other party will place its bet! <br> <br> Tap to see whether your opponent will guess right (you lose) or not (you win).</span>
+          <br>
+          
+          <span *ngIf="state == 'won' "> YOU WON ! </span> <br>
+          <span *ngIf="state == 'won' ">   The other side got it wrong. </span>
+
+          <span *ngIf="state == 'lost' "> YOU LOST ! </span><br>
+          <span *ngIf="state == 'lost' ">  The other side guessed it correctly. </span>
+
+
+        </div>
+
+      <div class="bottom" >
+        
+
+        <div *ngIf="state == 'hashInserted'" (click)="playRound(side)" class="logo-text button">
+          <span>Show Me</span>
+        </div>
+
+        <div *ngIf="state == 'lost' || state == 'won'" (click)="goToLobby(side)" class="logo-text button">
+          <span>One more try !</span>
+        </div>
+        
+
+
+      </div>
+      </div>
+
+    </ng-container>
 
   </div>
 
@@ -164,11 +227,11 @@
 <div id="text">
   <div id="pullmenu-icon">
     
-  </div>
-  <!-- <h1>pull<br/>menu</h1>
-  <h2>Menu<br/>interaction<br/>concept</h2> -->
-  <h3>{{state == 'lobby'}}</h3>
+  <!-- </div>
+  <h1>pull<br/>menu</h1>
+  <h2>Menu<br/>interaction<br/>concept</h2>
+  <h3>{{state}}</h3>
   <h3>* Pull down that icon!</h3>
   <h3>** Mobile demo: bit.ly/1CI6OEs</h3>
-</div>
+</div> -->
 

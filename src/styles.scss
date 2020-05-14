@@ -187,3 +187,17 @@ body {
   background-color: #F4F6F8 !important;
   border:#F4F6F8 !important;
 }
+
+.pinkCaption{
+  margin:auto;
+  padding-top: 15px;
+  padding-bottom: 15px;
+  width: 80%;
+  text-transform: none;  
+  color: rgb(247, 41, 110) !important;
+  font-size: 15px !important;
+  position: relative;
+  >span {
+    margin-bottom: 30px;
+  }
+}

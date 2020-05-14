@@ -1,4 +1,6 @@
 
+$flipduration: 2s;
+
 body {
     padding-top: 50px;
     background: #F7F7F7;
@@ -78,16 +80,16 @@ body {
   }
 
   #coin.heads {
-    -webkit-animation: flipHeads 3s ease-out forwards;
-    -moz-animation: flipHeads 3s ease-out forwards;
-      -o-animation: flipHeads 3s ease-out forwards;
-         animation: flipHeads 3s ease-out forwards;
+    -webkit-animation: flipHeads $flipduration ease-out forwards;
+    -moz-animation: flipHeads $flipduration ease-out forwards;
+      -o-animation: flipHeads $flipduration ease-out forwards;
+         animation: flipHeads $flipduration ease-out forwards;
   }
   #coin.tails {
-    -webkit-animation: flipTails 3s ease-out forwards;
-    -moz-animation: flipTails 3s ease-out forwards;
-      -o-animation: flipTails 3s ease-out forwards;
-         animation: flipTails 3s ease-out forwards;
+    -webkit-animation: flipTails $flipduration ease-out forwards;
+    -moz-animation: flipTails $flipduration ease-out forwards;
+      -o-animation: flipTails $flipduration ease-out forwards;
+         animation: flipTails $flipduration ease-out forwards;
   }
   
   @-webkit-keyframes flipHeads {

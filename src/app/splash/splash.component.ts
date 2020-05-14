@@ -44,11 +44,18 @@ export class SplashComponent implements OnInit {
   private contractAddress;
   private salt: string;
   private guess;
+  side: string = "undefined"
 
   screen1: any = {} //state properties for the different screens
 
   constructor(private sdkService: SdkService, private changeDetectorRef: ChangeDetectorRef) {
-    this.state = State.lobby;
+    this.state = State.initial;
+  }
+
+  setThrowResult(event){
+    this.side = event;
+    console.log(event)
+    this.changeDetectorRef.detectChanges();
   }
 
   initChannelAndWaitForContract() {
@@ -140,6 +147,7 @@ export class SplashComponent implements OnInit {
       step += 1;
       await this.updateBalance();
       casinoPickResult.decoded.arguments[0].value !== this.guess ? this.updateState(State.won) : this.updateState(State.lost);
+      this.changeDetectorRef.detectChanges()
     } catch (err) {
       this.stake = 0;
       this.guess = null;

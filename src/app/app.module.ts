@@ -15,6 +15,8 @@ import { SplashComponent } from './splash/splash.component';
 import {FormsModule} from "@angular/forms";
 import { InlineSVGModule } from 'ng-inline-svg';
 import {SuiModule} from 'ng2-semantic-ui';
+import { CoinflipperComponent } from './coinflipper/coinflipper.component';
+
 
 
 @NgModule({
@@ -25,7 +27,8 @@ import {SuiModule} from 'ng2-semantic-ui';
     ReversePipe,
     OneIncomingTransactionComponent,
     OneUpdateComponent,
-    SplashComponent
+    SplashComponent,
+    CoinflipperComponent
   ],
   imports: [
     BrowserModule,

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { ChangeDetectorRef } from '@angular/core';
 
 import { Observable } from 'rxjs';
@@ -31,6 +31,10 @@ enum State {
   styleUrls: ['./coinflipper.component.scss']
 })
 export class CoinflipperComponent implements OnInit {
+
+  @Output()
+  throwResult = new EventEmitter();
+
   keyDownSubscription: Subscription;
   keyUpSubscription: Subscription;
   isPressed: boolean = false;
@@ -45,30 +49,35 @@ export class CoinflipperComponent implements OnInit {
 
   coinside: string = ""
   coinsideThrowReveal: string = ""
-  constructor() {
+  constructor(public ref: ChangeDetectorRef) {
 
    }
+
    flipcoin() {
      let result =  Math.random() > 0.49999 ? 'heads' : 'tails'
     this.coinside = result;
+    this.ref.detectChanges()
     setTimeout(() => {
       this.coinsideThrowReveal = result
-    }, 3000);
+      this.throwResult.emit(result)
+      this.ref.detectChanges()
+    }, 2000);
    }
 
-  ngOnInit() {
+  ngOnInit() {/* 
     this.keyDownSubscription = fromEvent(document, 'keydown').subscribe( (e: KeyboardEvent) => {
       e.code == "Space" ? this.isPressed = true : true
     })
+
     this.keyUpSubscription = fromEvent(document, 'keyup').subscribe((e: KeyboardEvent) => {
       e.code == "Space" ? this.isPressed = false : true
       this.flipcoin()
-    })
+    }) */
   }
 
   ngOnDestroy() {
-    this.keyDownSubscription.unsubscribe()
-    this.keyUpSubscription.unsubscribe()
+/*     this.keyDownSubscription.unsubscribe()
+    this.keyUpSubscription.unsubscribe() */
   }
 
 }
