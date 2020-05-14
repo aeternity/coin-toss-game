@@ -13,6 +13,7 @@ import { OneUpdateComponent } from './one-update/one-update.component';
 import { SdkService } from './sdk.service';
 import { SplashComponent } from './splash/splash.component';
 import {FormsModule} from "@angular/forms";
+import { InlineSVGModule } from 'ng-inline-svg';
 
 @NgModule({
   declarations: [
@@ -30,7 +31,8 @@ import {FormsModule} from "@angular/forms";
     BrowserAnimationsModule,
     HttpClientModule,
     StorageServiceModule,
-    FormsModule
+    FormsModule,
+    InlineSVGModule.forRoot(),
   ],
   providers: [SdkService],
   bootstrap: [AppComponent]

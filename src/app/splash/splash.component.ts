@@ -43,11 +43,14 @@ export class SplashComponent implements OnInit {
   private salt: string;
   private guess;
 
+  screen1: any = {} //state properties for the different screens
+
   constructor(private sdkService: SdkService, private changeDetectorRef: ChangeDetectorRef) {
-    this.state = State.initial;
+    this.state = State.lobby;
   }
 
   initChannelAndWaitForContract() {
+    this.screen1.showLoader = true;
     const txTypes = []; // [ 'signedTx' ]
     this.sdkService.initChannel().then(async (channel) => {
 
@@ -94,7 +97,7 @@ export class SplashComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.initChannelAndWaitForContract();
+   // this.initChannelAndWaitForContract();
   }
 
   updateState(newState: State): void {

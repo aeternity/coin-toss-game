@@ -46,3 +46,120 @@
     </div>
   </div>
 </div>
+
+<div id="phone">
+  <div id="screen">
+    <div *ngIf="state != 'initial' && state != 'channelCreated' && state != 'contractCreated'" id="header">
+      <ul id="menu">
+        <li>About</li>
+        <li>Force Progress</li>
+        <li>New Game</li>
+        <li>About</li>
+        <li class="reload"><i class="loader-icon"></i></li>
+      </ul>
+      <div class="pullmenu-icon"></div>
+    </div>
+    <div id="loader"><i class="loader-icon anim"></i></div>
+<div class="pages">
+    <div class="page back2" id="about">
+      <div>
+        <span>Pullmenu</span><br/>Menu interaction concept<br/>by @_fbrz
+      </div>
+    </div>
+
+
+
+    <div  class="page fullscreen" id="latest">
+      
+      <!-- SCREEN 1 -->
+
+      <ng-container *ngIf="state == 'initial' || state == 'channelCreated' || state == 'contractCreated'"> 
+      <div class="box fullscreen back11">
+        <div class="logo-big" [inlineSVG]="'/assets/icons/aeternity-icon-white.svg'"  >
+        </div>
+        <div class="logo-text">
+          <span>Cointoss Game</span>
+        </div>
+        <!-- Play button -->
+        <div (click)="initChannelAndWaitForContract()" class="logo-text button">
+          <span>Start Playing !</span>
+        </div>
+
+        <!-- Updates -->
+        <div class="logo-text caption">
+          <span *ngIf="screen1.showLoader && state != 'error'" >Creating Channel...</span> <br><br>
+          <span *ngIf="state == 'channelCreated' && state != 'error'">Deploying Contract...</span>
+          <span *ngIf="state == 'contractDeployed' && state != 'error'">Done !</span>
+
+          <span *ngIf="state == 'error'">Connection error - have you set up the Node and Channel Service?</span>
+        </div>
+        
+        <!-- Loader -->
+        <div *ngIf="screen1.showLoader && !stateEnum.error" class="loader-big" [inlineSVG]="'/assets/icons/cycle-loader.svg'"  >
+        </div> 
+
+      <div class="bottom-footer" >
+        <span>Powered by AE</span>
+      </div>
+      </div>
+
+    </ng-container>
+
+
+    <!-- SCREEN 2! -->
+    <ng-container *ngIf="state == 'lobby'"> 
+      <div class="box fullscreen back11">
+        <div class="logo-big" [inlineSVG]="'/assets/icons/aeternity-icon-white.svg'"  >
+        </div>
+        <div class="logo-text">
+          <span>Cointoss Game</span>
+        </div>
+        <!-- Play button -->
+        <div (click)="initChannelAndWaitForContract()" class="logo-text button">
+          <span>Start Playing !</span>
+        </div>
+
+        <!-- Updates -->
+        <div class="logo-text caption">
+          <span *ngIf="screen1.showLoader && state != 'error'" >Creating Channel...</span> <br><br>
+          <span *ngIf="state == 'channelCreated' && state != 'error'">Deploying Contract...</span>
+          <span *ngIf="state == 'contractDeployed' && state != 'error'">Done !</span>
+
+          <span *ngIf="state == 'error'">Connection error - have you set up the Node and Channel Service?</span>
+        </div>
+        
+        <!-- Loader -->
+        <div *ngIf="screen1.showLoader && !stateEnum.error" class="loader-big" [inlineSVG]="'/assets/icons/cycle-loader.svg'"  >
+        </div> 
+
+      <div class="bottom-footer" >
+        <span>Powered by AE</span>
+      </div>
+      </div>
+
+    </ng-container>
+
+
+  </div>
+
+
+
+
+
+
+  </div>
+  <div id="home"></div>
+  <div id="speaker"></div>
+</div>
+
+<div id="text">
+  <div id="pullmenu-icon">
+    
+  </div>
+  <!-- <h1>pull<br/>menu</h1>
+  <h2>Menu<br/>interaction<br/>concept</h2> -->
+  <h3>{{state == 'lobby'}}</h3>
+  <h3>* Pull down that icon!</h3>
+  <h3>** Mobile demo: bit.ly/1CI6OEs</h3>
+</div>
+
