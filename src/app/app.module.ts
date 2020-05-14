@@ -11,6 +11,8 @@ import { ReversePipe } from './reverse.pipe';
 import { OneIncomingTransactionComponent } from './one-incoming-transaction/one-incoming-transaction.component';
 import { OneUpdateComponent } from './one-update/one-update.component';
 import { SdkService } from './sdk.service';
+import { SplashComponent } from './splash/splash.component';
+import {FormsModule} from "@angular/forms";
 
 @NgModule({
   declarations: [
@@ -19,14 +21,16 @@ import { SdkService } from './sdk.service';
     OnetransactionComponent,
     ReversePipe,
     OneIncomingTransactionComponent,
-    OneUpdateComponent
+    OneUpdateComponent,
+    SplashComponent
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
     HttpClientModule,
-    StorageServiceModule
+    StorageServiceModule,
+    FormsModule
   ],
   providers: [SdkService],
   bootstrap: [AppComponent]

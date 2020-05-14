@@ -1,0 +1,64 @@
+<div>
+  <h1>Welcome to the coin toss game</h1>
+  <div [ngSwitch]="state" class="state-indicator">
+    <div *ngSwitchCase="stateEnum.initial">
+      Creating channel...
+    </div>
+    <div *ngSwitchCase="stateEnum.channelCreated">
+      ✔️ Channel Created. <br/>
+      Creating contract...
+    </div>
+    <div *ngSwitchCase="stateEnum.contractCreated">
+      ✔️ Channel Created. <br/>
+      ✔️ Contract Created. <br/>
+    </div>
+    <div *ngSwitchCase="stateEnum.lobby">
+      Current balance {{ balance }} <br/>
+      Ready to play? <br/>
+      Max stake is: {{ maxStake }} <br/>
+      Stake: <input type="number" placeholder="Stake" [max]="maxStake" [(ngModel)]="stake">
+      <button (click)="startRound()">Start round</button><br/>
+      <button (click)="closeGame()">Close game</button>
+    </div>
+    <div *ngSwitchCase="stateEnum.roundStarted">
+      Ready to toss. Guess an outcome:
+      <button (click)="playRound('heads')">Heads</button>
+      <button (click)="playRound('tails')">Tails</button>
+    </div>
+    <div *ngSwitchCase="stateEnum.waitForHash">
+      Game status: <br/>
+        Hash Created. <br/>
+        Casino Pick. <br/>
+    </div>
+    <div *ngSwitchCase="stateEnum.hashInserted">
+      Game status: <br/>
+      ✔ Hash Created. <br/>
+      Casino Pick. <br/>
+      <button (click)="forceProgress()" *ngIf="showForceProgress">Force Progress</button>
+    </div>
+    <div *ngSwitchCase="stateEnum.casinoMadePick">
+      Game status: <br/>
+      ✔ Hash Created. <br/>
+      ✔ Casino Pick. <br/>
+    </div>
+    <div *ngSwitchCase="stateEnum.error">
+      Ups we encountered an error. Please reload :)
+    </div>
+    <div *ngSwitchCase="stateEnum.won">
+      Current balance {{ balance }} <br/>
+      You won! :)<br/>
+      <button (click)="closeGame()">Close game</button>
+      <button (click)="goToLobby()">Lobby</button>
+    </div>
+    <div *ngSwitchCase="stateEnum.lost">
+      Current balance {{ balance }} <br/>
+      You lost! :( <br/>
+      <button (click)="closeGame()">Close game</button>
+      <button (click)="goToLobby()">Lobby</button>
+    </div>
+    <div *ngSwitchCase="stateEnum.closed">
+      You need to open a channel to play a game <br/>
+      <button (click)="openChannel()">Open Channel</button>
+    </div>
+  </div>
+</div>

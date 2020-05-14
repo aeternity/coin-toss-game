@@ -41,11 +41,10 @@ export class TransactionlistComponent implements OnInit {
       });
       // Subscribe for signing of specific transactions type
       // Or another transactions will be signed automaticaly
-      channel.onSign(txTypes).subscribe(({ unpacked, accept, deny, networkId, tag }) => {
+      channel.onSign(txTypes).subscribe(({ unpacked, accept, deny, tag, updates }) => {
         console.log('---------- Channel signing -----------');
-        console.log('Channel sign networkId: ' + networkId);
-        console.log('Channel sign tag -> ' + tag);
         console.log('Channel sign transaction: ', unpacked);
+        console.log('Transaction updates:  ', updates);
         console.log('---------------------------------------');
         accept();
       });
@@ -58,20 +57,18 @@ export class TransactionlistComponent implements OnInit {
 
         // Block all channel operations util contract is created
         const contractAddress = await channel.awaitContractCreate();
-        console.log('--------------- Contract Deployed ---------------');
+        console.log('--------------- Contract Deployed ---------------', contractAddress);
         const BackendSetHash = await channel.awaitContractCall('provide_hash');
-        console.log('--------------- Backend set the hash ---------------');
+        console.log('--------------- Backend set the hash ---------------', BackendSetHash);
         // Make a contract call (provide a coin side)
-        const callRes = await channel.contractCall('player_pick', contractAddress, ['"tails"']);
+        const callRes = await channel.contractCall('player_pick', contractAddress, ['"tails"'], { amount: 10 });
         console.log('--------------- Client pick a coin side ---------------', callRes);
         // Wait of `reveal`
         const RevealByBackend = await channel.awaitContractCall('reveal');
         console.log('--------------- Backend call reveal ---------------', RevealByBackend);
-        // // Wait of `drain`
-        // const DrainByBackend = await channel.awaitContractCall('drain');
-        // console.log('---------------  Backend call drain ---------------', DrainByBackend);
-        // TODO Initiate shutdown
 
+        const shutdown = await channel.closeChannel();
+        console.log('--------------- Channel shutdown complete ---------------', shutdown);
       });
     }).catch(e => {  console.log(e); });
   }

@@ -9,7 +9,7 @@ import Channel from '@aeternity/aepp-sdk/es/channel';
 import MemoryAccount from '@aeternity/aepp-sdk/es/account/memory';
 import Universal from '@aeternity/aepp-sdk/es/ae/universal';
 import Node from '@aeternity/aepp-sdk/es/node';
-import { unpackTx } from '@aeternity/aepp-sdk/es/tx/builder';
+import { unpackTx, buildTxHash } from '@aeternity/aepp-sdk/es/tx/builder';
 import { getFunctionACI } from '@aeternity/aepp-sdk/es/contract/aci/helpers';
 import { prepareArgsForEncode } from '@aeternity/aepp-sdk/es/contract/aci';
 import { buildContractId } from '@aeternity/aepp-sdk/es/tx/builder/helpers';
@@ -47,21 +47,10 @@ export class SdkService {
   readonly compilerUrl: string = environment.COMPILER_URL;
 
 
-  constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {
-
-    // storage example:
-    // this.storage.set("key", "value");
-    // this.storage.get("key"); // => "value"
-  }
+  constructor(private http: HttpClient, @Inject(LOCAL_STORAGE) private storage: StorageService) {}
 
   get channel() {
     return this.$channel;
-  }
-
-  async getContractCode() {
-    return this.http
-      .get(`app/assets/contract.aes`, {responseType: 'text'})
-      .toPromise();
   }
 
   async getChannelConfig(params: { address: string, port: number }): Promise<any> {
@@ -101,19 +90,21 @@ export class ChannelInstance {
   // Deps
   private readonly $storage;
   private $code: string;
+  readonly bytecode: string;
+
   // State
   private $channel;
   private $initiatorAccount;
   private $onSign = new Subject();
   onChainTx = new BehaviorSubject(null);
   error = new BehaviorSubject(null);
-  state = new BehaviorSubject({ state: null, unpacked: null });
+  state = new Subject();
   status = new BehaviorSubject(null);
-  bytecode;
   channelParams;
   networkId: string;
   opened;
   actionBlocked: any = false;
+  updates = new Map();
 
   constructor(params, account, { networkId = 'ae_channel_service_test', code = '', storage = {}, bytecode = '' } = {}) {
     this.$code = code;
@@ -122,10 +113,6 @@ export class ChannelInstance {
     this.channelParams = params;
     this.networkId = networkId;
     this.$storage = storage;
-  }
-
-  set code(code: string) {
-    this.$code = code;
   }
 
   get channel() {
@@ -144,17 +131,27 @@ export class ChannelInstance {
     this.$channel.on(ActionTypes.stateChanged, async (newState) => {
       this.$storage.set('state', JSON.stringify({ stateTx: newState }));
       this.$storage.set('round', this.channel.round());
-      this.state.next({ state: newState, unpacked: unpackTx(newState) });
+      const unpacked = unpackTx(newState);
+      const round = unpacked.tx.encodedTx.tx.round;
+      const updates = this.updates.has(round) ? this.updates.get(round) : {};
+      if (updates && updates.operation === 'OffChainCallContract') {
+        const callRes = await this.channel.getContractCall({
+          caller: updates.update.caller_id,
+          contract: updates.update.contract_id,
+          round
+        });
+        const decodedResult = await this.decodeCallResult(updates.decoded.function, callRes.returnValue, callRes.returnType);
+        this.updates.set(round, { ...updates, decodedResult, callInfo: callRes });
+      }
+      this.state.next({ updates: this.updates.get(round), state: newState, unpacked });
     });
     this.$channel.on(ActionTypes.statusChanged, (status) => {
       this.status.next(status);
       this.$storage.set('status', this.channel.status());
       if (status === 'accepted') {
-        console.log('write fsmId: ' + this.channel.fsmId());
         this.$storage.set('fsmId', this.channel.fsmId());
       }
       if (status === 'signed') {
-        console.log('write channelId: ' + this.channel.id());
         this.$storage.set('channel', JSON.stringify({
           params: this.channelParams,
           id: this.channel.id()
@@ -191,8 +188,8 @@ export class ChannelInstance {
 
   disconnect() {
     this.channel.disconnect();
-    this.state.next({ state: null, unpacked: null }) ;
-    this.state.next(null);
+    this.state.next({ state: null, unpacked: null, contractCallInfo: null }) ;
+    this.status.next(null);
   }
 
   /**
@@ -200,50 +197,54 @@ export class ChannelInstance {
    */
   async awaitContractCreate() {
     return new Promise(resolve => {
-      const subscription = this.state.subscribe(({ unpacked }) => {
-        if (unpacked.tx.encodedTx.txType === 'channelOffChain'
-          && unpacked.tx.encodedTx.tx.updates[0]
-          && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCreateContract'
-        ) {
-          subscription.unsubscribe();
+      const subscription = this.state.subscribe(({ unpacked, updates }) => {
+        if (updates.operation && updates.operation === 'OffChainNewContract') {
+          setTimeout(() => subscription.unsubscribe(), 0);
           const round = unpacked.tx.encodedTx.tx.round;
-          const owner = unpacked.tx.encodedTx.tx.updates[0].tx.owner;
+          const owner = updates.update.owner;
           this.actionBlocked = false;
-          resolve(buildContractId(owner, round));
+          resolve({ contractId: buildContractId(owner, round), updates });
         }
       });
       this.actionBlocked = 'Waiting for contract create.';
     });
   }
 
-  async unpackAndDecodeContractCallTx(unpacked, fnName) {
-    const round = unpacked.tx.encodedTx.tx.round;
-    const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
-    const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
-    this.actionBlocked = false;
-    // TODO decode call data to know what FN is called
-    // debugger
-    // const decodedCallData = await this.decodeCallData(fnName, unpacked.tx.encodedTx.tx.updates[0].tx.callData);
-    // debugger
-    const callRes = await this.channel.getContractCall({ caller, contract, round });
-    return await this.decodeCallResult(fnName, callRes.returnValue, callRes.returnType);
+  async unpackContractUpdates(unpacked, options) {
+    if (!options || !options.updates || !options.updates.length) {
+      return {};
+    }
+    const [update] = options.updates;
+    const operation = update.op;
+    if (!['OffChainNewContract', 'OffChainCallContract'].includes(operation)) {
+      return {};
+    }
+    const round = unpacked.tx.round;
+    const callData = update.call_data;
+    const decodedCallData = await this.decodeCallData(callData);
+    return { round, decoded: decodedCallData, operation, update };
   }
 
-  async awaitContractCall(fnName) {
-    return new Promise((resolve, reject) => {
+  async pollForHeight(height: string | number) {
+    return this.$initiatorAccount.awaitHeight(height, { attempts: 100, interval: 1000 });
+  }
+
+  async awaitContractCall(fnName, { reactTime = 15 } = {}) {
+    return new Promise(async (resolve, reject) => {
       try {
-        const subscription = this.state.subscribe(async ({ unpacked }) => {
-          if (unpacked.tx.encodedTx.txType === 'channelOffChain'
-            && unpacked.tx.encodedTx.tx.updates[0]
-            && unpacked.tx.encodedTx.tx.updates[0].txType === 'channelOffChainCallContract'
-          ) {
-            const decodedResult = await this.unpackAndDecodeContractCallTx(unpacked, fnName);
+        const subscription = this.state.subscribe(async ({ unpacked, updates }) => {
+          if (updates.operation && updates.operation === 'OffChainCallContract' && updates.decoded.function === fnName) {
             this.actionBlocked = false;
-            subscription.unsubscribe();
-            resolve(decodedResult);
+            setTimeout(() => subscription.unsubscribe(), 0);
+            updates.decodedResult.abort ? reject(updates) : resolve(updates);
           }
         });
-        this.actionBlocked = 'Waiting for contract create.';
+        this.actionBlocked = 'Waiting for contract call.';
+        const height = await this.$initiatorAccount.height();
+        const poll = await this.pollForHeight(height + reactTime);
+        if (poll) {
+          reject({ reactionTimeExceed: true });
+        }
       } catch (e) {
         reject(e);
       }
@@ -254,12 +255,16 @@ export class ChannelInstance {
     return this.$initiatorAccount.contractDecodeCallResultAPI(this.$code, fnName, callValue, callResult);
   }
 
-  async decodeCallData(fnName: string, callData: string) {
-    return this.$initiatorAccount.contractDecodeCallDataBySourceAPI(this.$code, fnName, callData);
+  async decodeCallData(callData: string) {
+    return this.$initiatorAccount.contractDecodeCallDataByCodeAPI(this.bytecode, callData);
   }
 
-  async signTx(tag, tx) {
+  async signTx(tag, tx, options?: object) {
     const unpacked = unpackTx(tx);
+    const updates = await this.unpackContractUpdates(unpacked, options);
+    if (updates.round) {
+      this.updates.set(updates.round, updates);
+    }
     return new Promise(async (resolve, reject) => {
       if (!this.$onSign.observers.length) {
         resolve(await this.$initiatorAccount.signTransaction(tx, { networkId: this.networkId }));
@@ -269,10 +274,15 @@ export class ChannelInstance {
         tag,
         unpacked,
         tx,
+        updates,
         accept: async () => resolve(await this.$initiatorAccount.signTransaction(tx, { networkId: this.networkId })),
         deny: () => reject(false)
       });
     });
+  }
+
+  async getBalances() {
+    return await this.$channel.balances([this.channelParams.initiatorId, this.channelParams.responderId]);
   }
 
   onSign(txTypes: string[] = []) {
@@ -339,15 +349,37 @@ export class ChannelInstance {
     if (this.actionBlocked) {
       throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
     }
-    return await this.channel.withdrawal(amount, tx => this.signTx('withdrawal_tx', tx));
+    return await this.channel.withdrawal(amount, (tx, options) => this.signTx('withdrawal_tx', tx, options));
   }
 
   async closeChannel() {
     if (this.actionBlocked) {
       throw new Error('Action is blocked. Reason: ' + this.actionBlocked);
     }
-    this.channel.disconnect();
-    return this.channel.shutdown(tx => this.signTx('shutdown_tx', tx));
+    const res = await this.channel.shutdown((tx, options) => this.signTx('shutdown_tx', tx, options));
+    this.disconnect();
+    return res;
+  }
+
+  async forceProgress(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {
+    if (!this.channel) {
+      throw new Error('Channel create process is not started. Please run `openChannel()`');
+    }
+
+    const callData = await this.$initiatorAccount.contractEncodeCallDataAPI(
+      CONTRACT,
+      fn,
+      aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
+    );
+    const res = await this.channel.forceProgress({
+      amount,
+      callData,
+      contract: contractAddress,
+      abiVersion: 3
+    }, (tx, options) => this.signTx('contract_call', tx, options));
+    const hash = buildTxHash(res.tx);
+    const txInfo = await this.$initiatorAccount.tx(hash);
+    return { hash, tx: txInfo };
   }
 
   async contractCall(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {
@@ -360,24 +392,41 @@ export class ChannelInstance {
       fn,
       aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
     );
-    const res =  await this.channel.callContract(
-      { amount, callData, contract: contractAddress, abiVersion: 3 },
-        tx => this.signTx('contract_call', tx)
+    const res = await this.channel.callContract(
+      {amount, callData, contract: contractAddress, abiVersion: 3},
+      (tx, options) => this.signTx('contract_call', tx, options)
     );
     if (!res.accepted) {
-      throw new Error(`Contract call error: ${res}`);
+      throw Object.assign(Error(`Contract call error: ${res.errorMessage}`), res);
     }
     const unpacked = unpackTx(res.signedTx);
     const round = unpacked.tx.encodedTx.tx.round;
-    const caller = unpacked.tx.encodedTx.tx.updates[0].tx.caller;
-    const contract = unpacked.tx.encodedTx.tx.updates[0].tx.contract;
-    const callRes = await this.channel.getContractCall({ caller, contract, round });
-    const decoded = await this.decodeCallResult(fn, callRes.returnValue, callRes.returnType);
-
+    const updates = this.updates.get(round);
+    const callRes = await this.channel.getContractCall({ caller: updates.update.caller_id, contract: updates.update.contract_id, round });
+    const decodedResult = await this.decodeCallResult(updates.decoded.function, callRes.returnValue, callRes.returnType);
+    this.updates.set(round, { ...updates, decodedResult, callInfo: callRes });
     if (callRes.returnType !== 'ok') {
-      throw Object.assign(decoded, new Error(`Contract call ${fn} is aborted`));
+      throw Object.assign(decodedResult, new Error(`Contract call ${fn} is aborted`));
     }
-    return { ...callRes, decoded };
+    return this.updates.get(round);
+  }
+
+  async contractDryRun(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {
+    if (!this.channel) {
+      throw new Error('Channel create process is not started. Please run `openChannel()`');
+    }
+
+    const callData = await this.$initiatorAccount.contractEncodeCallDataAPI(
+      CONTRACT,
+      fn,
+      aci ? await prepareArgsForEncode(getFunctionACI(aci, fn), args) : args
+    );
+    const res = await this.channel.callContractStatic(
+      {amount, callData, contract: contractAddress, abiVersion: 3},
+      (tx, options) => this.signTx('contract_call', tx, options)
+    );
+    const decodedResult = await this.decodeCallResult(fn, res.returnValue, res.returnType);
+    return decodedResult;
   }
 
 }
@@ -385,74 +434,69 @@ export class ChannelInstance {
 const CONTRACT = `// orignal contract location is at
 // https://github.com/aeternity/aeternity/blob/f3ad49602cc9e52dbaf8941b1f6304f232e8e994/test/contracts/coin_toss.aes
 contract CoinToss =
-  record state = { casino          : address,
-                   player          : address,
+  record state = { player          : address,
+                   casino          : address,
                    hash            : option(hash),
                    height          : int,
-                   player_pick     : option(string),
-                   player_stake    : int,
+                   casino_pick     : option(string),
+                   stake           : int,
                    reaction_time   : int
                    }
 
-  entrypoint init(casino: address, player: address, reaction_time: int) : state =
-    { casino          = casino,
-      player          = player,
+  entrypoint init(player: address, casino: address, reaction_time: int) : state =
+    require(Call.value == 0, "no_deposit")
+    { player          = player,
+      casino          = casino,
       hash            = None,
       height          = 0,
-      player_pick     = None,
-      player_stake    = 0,
+      casino_pick     = None,
+      stake    = 0,
       reaction_time   = reaction_time
       }
 
   payable stateful entrypoint provide_hash(hash: hash) =
-    require_casino()
+    require_player()
     require(state.hash == None, "already_has_hash")
     put(state{ hash = Some(hash),
+               stake = Call.value,
                height = Chain.block_height})
 
-  stateful entrypoint withdraw(amount: int) =
+  payable stateful entrypoint casino_pick(coin_side: string) =
     require_casino()
-    require(state.hash == None, "already_playing")
-    Chain.spend(state.casino, amount)
-
-  stateful entrypoint drain() =
-    require_casino()
-    require(state.hash == None, "already_playing")
-    Chain.spend(state.casino, Contract.balance)
-
-  payable entrypoint deposit() =
-    require_casino()
-
-  stateful payable entrypoint player_pick(coin_side: string) =
-    require_player()
-    ensure_player_turn_to_pick()
+    ensure_casino_turn_to_pick()
     ensure_coin_side(coin_side)
-    require(Call.value * 2 =< Contract.balance, "stake_too_big")
-    put(state{ player_pick  = Some(coin_side),
-               height       = Chain.block_height,
-               player_stake = Call.value})
+    require(Call.value == state.stake,
+      String.concat("wrong_stake, expected ", Int.to_str(state.stake)))
+    put(state{ casino_pick  = Some(coin_side),
+               height       = Chain.block_height})
 
   stateful entrypoint reveal(key: string, coin_side: string) =
-    require_casino()
-    ensure_casino_turn_to_reveal()
+    require_player()
+    ensure_player_turn_to_reveal()
     ensure_coin_side(coin_side)
     ensure_if_key_is_valid(key, coin_side)
-    let Some(player_pick) = state.player_pick
-    if (coin_side == player_pick)
-      Chain.spend(state.player, state.player_stake * 2)
+    let Some(casino_pick) = state.casino_pick
+    let winner : address =
+      if (coin_side == casino_pick)
+        state.casino
+      else
+        state.player
+    Chain.spend(winner, Contract.balance)
     reset_state()
+    winner
 
-  stateful entrypoint player_dispute_no_reveal() =
-    require_player()
-    ensure_casino_turn_to_reveal()
-    require(state.height  + state.reaction_time < Chain.block_height, "not_yet_allowed")
-    Chain.spend(state.player, state.player_stake * 2)
-    reset_state()
-
-  stateful entrypoint casino_dispute_no_pick() =
+  stateful entrypoint casino_dispute_no_reveal() =
     require_casino()
-    ensure_player_turn_to_pick()
+    ensure_player_turn_to_reveal()
+    require(state.height  + state.reaction_time < Chain.block_height, "not_yet_allowed")
+    Chain.spend(state.casino, Contract.balance)
+    reset_state()
+
+  stateful entrypoint player_dispute_no_pick() =
+    require_player()
+    ensure_casino_turn_to_pick()
     require(state.height + state.reaction_time < Chain.block_height, "not_yet_allowed")
+    Chain.spend(state.player, Contract.balance)
     reset_state()
 
   // a friendly helper function
@@ -465,18 +509,18 @@ contract CoinToss =
   function ensure_coin_side(coin_side: string) =
     require(coin_side == "heads" || coin_side == "tails", "invalid_coin_side")
 
-  function ensure_player_turn_to_pick() =
+  function ensure_casino_turn_to_pick() =
     require(state.hash != None, "no_hash")
-    require(state.player_pick == None, "there_is_a_pick_already")
+    require(state.casino_pick == None, "there_is_a_pick_already")
 
-  function ensure_casino_turn_to_reveal() =
-    require(state.player_pick != None, "there_is_no_pick")
-
-  function require_player() =
-    require(Call.caller == state.player, "not_player")
+  function ensure_player_turn_to_reveal() =
+    require(state.casino_pick != None, "there_is_no_pick")
 
   function require_casino() =
     require(Call.caller == state.casino, "not_casino")
+
+  function require_player() =
+    require(Call.caller == state.player, "not_player")
 
   function ensure_if_key_is_valid(key: string, coin_side: string) =
     let computed_hash = compute_hash(key, coin_side)
@@ -486,6 +530,6 @@ contract CoinToss =
   stateful function reset_state() =
     put(state{hash            = None,
               height          = 0,
-              player_pick     = None,
-              player_stake    = 0
+              casino_pick     = None,
+              stake           = 0
               })`;
