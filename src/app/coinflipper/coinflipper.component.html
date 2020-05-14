@@ -1,0 +1,15 @@
+<div id="coin" 
+[className]="coinside != '' ? coinside : ''"
+(click)="flipcoin()">
+    <div class="side-a"></div>
+    <div class="side-b">            
+        <div class="img-container"> <img style="margin-top: 32%" src="/assets/img/ae-coinlogo.png" alt="Next thumb"/> </div>
+    </div>
+</div>
+
+<div><p *ngIf="coinsideThrowReveal" class="label">You flipped {{coinsideThrowReveal}} !</p></div>
+<app-ae-button 
+    [label]="buttonLabels[state]"
+    [pressed]="isPressed"
+    (click)="flipcoin()"
+></app-ae-button>
