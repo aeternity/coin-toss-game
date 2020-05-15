@@ -21,13 +21,14 @@ In case of questions, issues and featur requests, please turn to https://forum.a
 
 # About the game:
 
-Short description by Keno:
+Short description, steps marked with (*) require co-signing, that is; signature by both participants 
 ```
-1. create contract
-2. backend provides hash
-3. player picks a side
-4. backend calls reveal
-5. you win / lose
+1. channels is opened (*)
+2. backend provides contract (*)
+3. player provides a stake N tokens and a hash `compute_hash` based on guess which is heads|tails, and the secret key (salt) (*)
+4. backend makes a coin_side guess with `casino_pick` and also provides N tokens to be able to participate (*)
+5. client reveals `reveal` by prividing key (salt) and the selected coin_side, tokens are now redistributed (*)
+6. goto 3 ( ) or shutdown (*) which return tokens on-chain
 ```
 
 Description of the final (!) game by Dimitar (progressing in steps might be smart):
