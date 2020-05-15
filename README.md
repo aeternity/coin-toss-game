@@ -1,4 +1,8 @@
-To start the application with nodeservice and node pointed at the remote server, do:
+# Installation: 
+
+1. To use the Coin Toss State Channel Demo, you first need to install and the AE Channel Service which also provides you with a very basic setup of an Aeternity node with a local private network and some prefunded accounts. The AE Channel Service will serve as an automated counterpart that will play the Coin Toss Game against you: https://github.com/aeternity/ae-channel-service . Mac Users: For the first build, you might increase the RAM allocated to your docker in the docker desktop menu to at least 2,5 GB of free memory.
+
+2. Clone this repo and run:
 
 ```
 $ npm install -g @angular/cli
@@ -7,14 +11,15 @@ $ npm install
 
 $ ng serve
 ```
+then open http://localhost:4200/
 
-You can serve the application pointed pointing the channel service and node to be hosted at 
-```
- SC_NODE_URL: 'ws://localhost:3014/channel',
-  BACKEND_SERVICE_URL: 'http://localhost:4000'
-```
-with this command:
-`ng serve --configuration=localhost`
+Note: The current state of the demo depicts only the "happy path". In case of errors, restart the Node and Channel service (here eventualls delete the `data` folder) and reload the site.
+
+The application automatically points to your Aeternity Node and AE Channel service at localhost. If you're running them on another host, you can change the according values at `src/environments/environment.ts `
+
+In case of questions, issues and featur requests, please turn to https://forum.aeternity.com/ .
+
+# About the game:
 
 Short description by Keno:
 ```
