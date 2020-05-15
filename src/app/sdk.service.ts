@@ -140,7 +140,10 @@ export class ChannelInstance {
           contract: updates.update.contract_id,
           round
         });
-        const decodedResult = await this.decodeCallResult(updates.decoded.function, callRes.returnValue, callRes.returnType);
+        console.log('From state handler: ', updates);
+        const decodedResult =
+          updates.decodedResult ||
+          await this.decodeCallResult(updates.decoded.function, callRes.returnValue, callRes.returnType);
         this.updates.set(round, { ...updates, decodedResult, callInfo: callRes });
       }
       this.state.next({ updates: this.updates.get(round), state: newState, unpacked });
@@ -181,7 +184,7 @@ export class ChannelInstance {
     this.$channel = await Channel({
       ...this.channelParams,
       sign: this.signTx.bind(this),
-      debug: true // log WebSocket messages
+      debug: false // log WebSocket messages
     });
     this.registerHandlers();
   }
@@ -398,12 +401,11 @@ export class ChannelInstance {
     const round = unpacked.tx.encodedTx.tx.round;
     const updates = this.updates.get(round);
     const callRes = await this.channel.getContractCall({ caller: updates.update.caller_id, contract: updates.update.contract_id, round });
-    const decodedResult = await this.decodeCallResult(updates.decoded.function, callRes.returnValue, callRes.returnType);
-    this.updates.set(round, { ...updates, decodedResult, callInfo: callRes });
     if (callRes.returnType !== 'ok') {
+      const decodedResult = await this.decodeCallResult(updates.decoded.function, callRes.returnValue, callRes.returnType);
       throw Object.assign(decodedResult, new Error(`Contract call ${fn} is aborted`));
     }
-    return this.updates.get(round);
+    return { ...this.updates.get(round), decode: () => this.updates.get(round).decodedResult };
   }
 
   async contractDryRun(fn, contractAddress: string, args: any[], { amount = 0, aci = null } = {}) {

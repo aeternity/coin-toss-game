@@ -52,7 +52,7 @@ export class SplashComponent implements OnInit {
     this.state = State.initial;
   }
 
-  setThrowResult(event){
+  setThrowResult(event) {
     this.side = event;
     console.log(event)
     this.changeDetectorRef.detectChanges();
@@ -106,7 +106,7 @@ export class SplashComponent implements OnInit {
   }
 
   ngOnInit() {
-   // this.initChannelAndWaitForContract();
+   // this();
   }
 
   updateState(newState: State): void {
@@ -147,7 +147,7 @@ export class SplashComponent implements OnInit {
       step += 1;
       await this.updateBalance();
       casinoPickResult.decoded.arguments[0].value !== this.guess ? this.updateState(State.won) : this.updateState(State.lost);
-      this.changeDetectorRef.detectChanges()
+      this.changeDetectorRef.detectChanges();
     } catch (err) {
       this.stake = 0;
       this.guess = null;
