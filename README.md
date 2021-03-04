@@ -5,12 +5,12 @@
 1. To use the Coin Toss State Channel Demo, you need to perform the following steps before cloning this repo and working with it:
 a. Run an aeternity node
 - You can run a local aeternity node. You can choose to run a node on your local machine or you can use docker to run the node. You can also run it on another machine but you may have to change some settings in the ae-channel-service if you do so.
-- Here(https://blog.aeternity.com/why-run-an-ae-node-and-how-to-do-it-8b95a685f683) is an article that describes how to run your own node.
+- [Here](https://blog.aeternity.com/why-run-an-ae-node-and-how-to-do-it-8b95a685f683) is an article that describes how to run your own node.
 - While running the node, it is important to understand that your node should have an access to the WebSocket endpoint (by default it lives on 127.0.0.1:3014). If you run a docker image - you must provide a proper setup to expose it out of the docker. Note that by default it is bound to the localhost of the docker image.
 - In order to enforce the websocket endpoint opening at 3014, you can use either of the following .yaml file for your node configuration:
-https://github.com/aeternity/ae-channel-service/blob/master/test/aeternity_node_fast_test_config.yml
+[Aeterninty Node Fast Test Config](https://github.com/aeternity/ae-channel-service/blob/master/test/aeternity_node_fast_test_config.yml)
 or
-https://github.com/aeternity/ae-channel-service/blob/master/test/aeternity_node_normal_test_config.yml
+[Aeterninty Node Normal Test Config](https://github.com/aeternity/ae-channel-service/blob/master/test/aeternity_node_normal_test_config.yml)
 
 - Here is an example command on how to run your aeternity node using docker and mounting your .yaml file:
 docker run -p 3013:3013 -p 3014:3014 -p 3015:3015 \
@@ -21,12 +21,11 @@ docker run -p 3013:3013 -p 3014:3014 -p 3015:3015 \
 - Once your node is up and running, you would also need to create accounts. In real life that would be the result of the ICO(accounts) but for the test you can set your own.
 How can you set the accounts?
 Inside your node directory(the nodee that you are running), you will find a file called 'accounts_test.json' under the path - /node/data/aecore/.genesis
-You can replace the accounts_test.json with this file:
-https://github.com/aeternity/ae-channel-service/blob/master/test/accounts_test.json
+You can replace the accounts_test.json with [this](https://github.com/aeternity/ae-channel-service/blob/master/test/accounts_test.json) file:
 
 The above json has public keys indicating the accounts as well as their balance in aettos.
 
-b. You need to install and the AE Channel Service. The AE Channel Service will serve as an automated counterpart that will play the Coin Toss Game against you: https://github.com/aeternity/ae-channel-service . Mac Users: For the first build, you might increase the RAM allocated to your docker in the docker desktop menu to at least 2,5 GB of free memory.
+b. You need to install and the AE Channel Service. The AE Channel Service will serve as an automated counterpart that will play the Coin Toss Game against you. Follow [this](https://github.com/aeternity/ae-channel-service) link to install and run the ae-channel-service. Mac Users: For the first build, you might increase the RAM allocated to your docker in the docker desktop menu to at least 2,5 GB of free memory.
 For the first time, the ae-channel-service may take a little longer to build. Depending on your machine capacity and your background processes, sometime it may take upto 6-8 hours but patience is the key. Once you start running this, it would become faster eventually.
 
 c. You can run the test on various environments: mainnet, testnet or locally as an independent node mining on its own. You must configure your ae-channel-service properly so it can sign your transactions for you. Sadly, the demo client does not do that so you must fill your key pair here. If you’re running a local standalone test, you must configure your accounts_test.json accordingly.
