@@ -47,7 +47,7 @@ The application automatically points to your Aeternity Node and AE Channel servi
 
 In case of questions, issues and featur requests, please turn to https://forum.aeternity.com/ .
 
-3. You can run the test on various environments: mainnet, testnet or locally as an independent node mining on its own. For each of the environmeents, you must configure your ae-channel-service properly so it can sign your transactions for you.
+3. You can run the test on various environments: mainnet, testnet or locally as an independent node mining on its own. For each of the environments, you must configure your ae-channel-service properly so it can sign your transactions for you.
 
 4. Depending on your setup, you must configure your network_id depending on the environment
 
