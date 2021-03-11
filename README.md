@@ -52,7 +52,7 @@ In case of questions, issues and featur requests, please turn to https://forum.a
 4. Depending on your setup, you must configure your network_id depending on the environment
 
 5. For the node config files:
-An example config files can be found in the ae-channel-service repo. There are two different setups, the difference between them is simply if the node mines with a normal speed or much faster(the config files are linked in 1a). Please note that if you want iris enabled, you shall add a corresponding line in the hard_forks section.
+Examples of config files can be found in the ae-channel-service repo. There are two different setups: the difference between them is simply if the node mines with a normal speed or much faster (the config files are linked in 1a). Please note that if you want iris enabled, you shall add a corresponding line in the `hard_forks` section.
 
 # About the game:
 
