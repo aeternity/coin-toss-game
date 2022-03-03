@@ -85,3 +85,4 @@ and claim their reward. If Alice says head/tails - it is the casino's turn to pr
 If it refuses to do so, after the timer runs out, Alice can force progress it on-chain and claim her reward. If the 
 hash is provided, someone gets the reward in a civilized manner.
 ```
+NOTE: This bounty was sponsored by the AE Crypto Foundation.
