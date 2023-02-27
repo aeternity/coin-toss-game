@@ -1,3 +1,6 @@
+# This repository has been archived on 27.02.2023
+The reason for the retirement is that the code is outdated. For a up to date state channel demo please refer to https://github.com/aeternity/state-channel-demo
+
 # Step by step tutorial for the coin-toss game
 
 # Installation: 
